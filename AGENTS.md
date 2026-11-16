@@ -12,6 +12,7 @@ An open-source, self-hostable marketplace for AI agent skills hosted on GitHub. 
 pnpm install        # install dependencies
 pnpm dev            # bootstrap (env, migrate, seed) then start the site on :3000
 pnpm test           # all unit and integration tests (Vitest)
+pnpm test:e2e       # browser and accessibility tests (Playwright; run `pnpm exec playwright install chromium` once)
 pnpm lint           # ESLint, zero warnings allowed
 pnpm typecheck      # TypeScript in every package
 pnpm build          # production build of the web app

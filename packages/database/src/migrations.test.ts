@@ -143,7 +143,10 @@ describe('seed data', () => {
     const first = await seedDevFixtures(handle.db);
     expect(first.repositories).toBeGreaterThan(0);
     expect(first.skills).toBeGreaterThan(0);
-    expect(await seedDevFixtures(handle.db)).toEqual({ repositories: 0, skills: 0 });
+    // Seeding again replaces the fixtures rather than duplicating them.
+    expect(await seedDevFixtures(handle.db)).toEqual(first);
+    const count = await handle.db.selectFrom('skills').select('id').execute();
+    expect(count).toHaveLength(first.skills);
     expect(await hasDevFixtures(handle.db)).toBe(true);
 
     const repos = await handle.db.selectFrom('repositories').selectAll().execute();

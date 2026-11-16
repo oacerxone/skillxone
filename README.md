@@ -2,8 +2,8 @@
 
 An open-source, self-hostable marketplace for discovering, evaluating and installing AI agent skills hosted on GitHub. Initial agents: Claude Code and OpenAI Codex.
 
-> **Status: Phase 1 of 10 — foundation.**
-> The workspace, database, job queue, design tokens, web shell and worker CLI exist and are tested. The marketplace pages, GitHub ingestion, search, security scanning and installation are **not built yet**. See the [roadmap](docs/ROADMAP.md).
+> **Status: Phase 2 of 10 — public marketplace UI on development fixtures.**
+> The site, search filters, skill pages, security report layout and install panel work, but they show **clearly labelled fixture data**. GitHub ingestion, ranked search, the security scanner and working submissions are **not built yet**. See the [roadmap](docs/ROADMAP.md).
 
 ## What it will do
 
@@ -34,6 +34,7 @@ Other commands:
 | Command                         | Purpose                                                     |
 | ------------------------------- | ----------------------------------------------------------- |
 | `pnpm test`                     | Unit and integration tests                                  |
+| `pnpm test:e2e`                 | Browser and accessibility tests (Playwright, axe-core)      |
 | `pnpm lint` / `pnpm typecheck`  | Static checks                                               |
 | `pnpm build`                    | Production build of the web app                             |
 | `pnpm worker help`              | Worker CLI: `migrate`, `seed`, `status`, `enqueue`, `drain` |

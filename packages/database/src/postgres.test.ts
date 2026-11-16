@@ -38,8 +38,8 @@ describe.skipIf(!url)('PostgreSQL dialect', () => {
   it('loads seed data idempotently', async () => {
     expect(await seedCategories(handle.db)).toBeGreaterThan(0);
     expect(await seedCategories(handle.db)).toBe(0);
-    await seedDevFixtures(handle.db);
-    expect(await seedDevFixtures(handle.db)).toEqual({ repositories: 0, skills: 0 });
+    const first = await seedDevFixtures(handle.db);
+    expect(await seedDevFixtures(handle.db)).toEqual(first);
     const repo = await handle.db.selectFrom('repositories').selectAll().executeTakeFirstOrThrow();
     expect(typeof repo.github_id).toBe('number');
   });

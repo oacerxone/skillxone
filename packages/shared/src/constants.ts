@@ -20,3 +20,7 @@ export type JobStatus = (typeof JOB_STATUSES)[number];
 
 /** `repositories.discovery_source` value that marks development-only fixture rows. */
 export const DEV_FIXTURE_SOURCE = 'dev-fixture';
+
+/** Sort orders for skill listings. */
+export const SKILL_SORTS = ['popular', 'updated', 'newest', 'name'] as const;
+export type SkillSort = (typeof SKILL_SORTS)[number];

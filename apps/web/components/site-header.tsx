@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { primaryNav, secondaryNav } from '@/lib/navigation';
 import type { NavItem } from '@/lib/navigation';
+import { MobileMenu } from './mobile-menu';
 import { ThemeToggle } from './theme-toggle';
 
 function NavLink({ item, className }: { item: NavItem; className: string }) {
@@ -48,15 +49,32 @@ export function SiteHeader() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
+          <form
+            action="/explore"
+            method="get"
+            role="search"
+            aria-label="Site search"
+            className="hidden xl:block"
+          >
+            <label htmlFor="header-q" className="sr-only">
+              Search skills
+            </label>
+            <input
+              id="header-q"
+              name="q"
+              type="search"
+              data-search-input
+              autoComplete="off"
+              maxLength={100}
+              placeholder="Search skills  /"
+              className="input w-52"
+            />
+          </form>
           <ThemeToggle />
 
-          {/* Mobile menu: a native disclosure, so it works without JavaScript. */}
-          <details className="relative md:hidden">
-            <summary className="inline-flex h-8 cursor-pointer list-none items-center rounded-md border border-border px-3 text-[13px] text-text [&::-webkit-details-marker]:hidden">
-              Menu
-            </summary>
+          <MobileMenu>
             <nav
-              aria-label="Primary"
+              aria-label="Menu"
               className="absolute right-0 mt-2 w-56 rounded-lg border border-border bg-bg p-1 shadow-lg"
             >
               {primaryNav.map((item) => (
@@ -67,7 +85,7 @@ export function SiteHeader() {
                 <NavLink key={item.href} item={item} className={mobileLink} />
               ))}
             </nav>
-          </details>
+          </MobileMenu>
         </div>
       </div>
     </header>

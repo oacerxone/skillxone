@@ -18,3 +18,7 @@ data/
 
 # local tool configuration
 .claude/
+
+# browser test output
+test-results/
+playwright-report/

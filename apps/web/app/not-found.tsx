@@ -10,7 +10,7 @@ export default function NotFound() {
         This page does not exist, or it belongs to a part of the marketplace that has not been built
         yet.
       </p>
-      <Link href="/" className="mt-6 inline-block text-accent hover:underline">
+      <Link href="/" className="link mt-6 inline-block">
         Back to the homepage
       </Link>
     </div>

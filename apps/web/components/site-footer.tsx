@@ -7,11 +7,7 @@ export function SiteFooter() {
       <div className="mx-auto flex max-w-[1200px] flex-col gap-3 px-4 py-6 text-[13px] text-text-muted sm:flex-row sm:items-center sm:justify-between">
         <p>
           Open source under Apache-2.0. Indexed skills remain under their own licenses.{' '}
-          <a
-            href={REPOSITORY_URL}
-            className="text-accent hover:underline"
-            rel="noopener noreferrer"
-          >
+          <a href={REPOSITORY_URL} className="link" rel="noopener noreferrer">
             Source
           </a>
         </p>

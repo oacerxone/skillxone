@@ -1,80 +1,184 @@
+import Link from 'next/link';
+import { listCategories, listCollections, listSkills } from '@skillxone/database';
+import { Section } from '@/components/page-parts';
+import { EmptyState, SkillList } from '@/components/skill-list';
 import { getDatabase } from '@/lib/db';
+import { AGENT_IDS, AGENT_INFO } from '@/lib/install';
+import { REPOSITORY_URL } from '@/lib/navigation';
 
-interface Snapshot {
-  categories: number;
-  skills: number;
-  repositories: number;
-}
-
-async function loadSnapshot(): Promise<Snapshot | null> {
-  try {
-    const { db } = await getDatabase();
-    const count = async (table: 'categories' | 'skills' | 'repositories') => {
-      const row = await db
-        .selectFrom(table)
-        .select((eb) => eb.fn.countAll<number>().as('n'))
-        .executeTakeFirstOrThrow();
-      return Number(row.n);
-    };
-    return {
-      categories: await count('categories'),
-      skills: await count('skills'),
-      repositories: await count('repositories'),
-    };
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Phase 1 shell. The real homepage (search, trending, categories) is built in Phase 2;
- * this page only proves that the layout, tokens and database connection work.
- */
 export default async function HomePage() {
-  const snapshot = await loadSnapshot();
+  const { db } = await getDatabase();
+  const now = new Date();
+  const [active, verified, updated, categories, collections] = await Promise.all([
+    // Until real star history exists (Phase 4) this section is ordered by recent activity
+    // and labelled accordingly, rather than presented as "trending".
+    listSkills(db, { sort: 'updated', pageSize: 8 }),
+    listSkills(db, { verification: 'VERIFIED', sort: 'popular', pageSize: 6 }),
+    listSkills(db, { sort: 'newest', pageSize: 6 }),
+    listCategories(db),
+    listCollections(db),
+  ]);
+  const featured = categories.filter((c) => c.skillCount > 0).slice(0, 8);
 
   return (
-    <div className="py-12">
-      <h1 className="max-w-2xl text-[28px] font-semibold leading-[34px] tracking-[-0.015em] sm:text-[40px] sm:leading-[44px] sm:tracking-[-0.02em]">
-        Find agent skills you can check before you install.
-      </h1>
-      <p className="mt-4 max-w-xl text-[15px] leading-[24px] text-text-muted">
-        An open-source index of Claude Code and Codex skills from GitHub, with a published security
-        report for every indexed version.
-      </p>
+    <>
+      <section aria-labelledby="hero-heading" className="pb-2 pt-12">
+        <h1
+          id="hero-heading"
+          className="max-w-2xl text-[28px] font-semibold leading-[34px] tracking-[-0.015em] sm:text-[40px] sm:leading-[44px] sm:tracking-[-0.02em]"
+        >
+          Find agent skills you can check before you install.
+        </h1>
+        <p className="mt-4 max-w-xl text-[15px] leading-[24px] text-text-muted">
+          An open-source index of Claude Code and Codex skills from GitHub, with a published
+          security report for every assessed version.
+        </p>
+
+        <form
+          action="/explore"
+          method="get"
+          role="search"
+          aria-label="Search skills"
+          className="mt-8 flex max-w-2xl gap-2"
+        >
+          <label htmlFor="home-q" className="sr-only">
+            Search skills
+          </label>
+          <input
+            id="home-q"
+            name="q"
+            type="search"
+            data-search-input
+            autoComplete="off"
+            maxLength={100}
+            placeholder="Search skills by name, description or repository"
+            className="input h-12 text-[15px]"
+          />
+          <button type="submit" className="btn btn-primary h-12 px-5">
+            Search
+          </button>
+        </form>
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-[13px] text-text-muted">
+          <span id="quick-filter-label">Browse for</span>
+          <ul aria-labelledby="quick-filter-label" className="flex flex-wrap gap-2">
+            {AGENT_IDS.map((id) => (
+              <li key={id}>
+                <Link href={`/explore?agent=${id}`} className="chip">
+                  {AGENT_INFO[id].label}
+                </Link>
+              </li>
+            ))}
+            <li>
+              <Link href="/verified" className="chip">
+                Verified only
+              </Link>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <Section
+        id="active-heading"
+        title="Recently active"
+        note="Ordered by latest content change. Trending needs star history, which is not collected yet."
+        href="/trending"
+      >
+        {active.items.length > 0 ? (
+          <SkillList skills={active.items} now={now} />
+        ) : (
+          <EmptyState title="No skills indexed yet">
+            Skills appear here once repositories have been indexed.
+          </EmptyState>
+        )}
+      </Section>
+
+      {featured.length > 0 && (
+        <Section id="categories-heading" title="Categories" href="/categories">
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {featured.map((category) => (
+              <li key={category.slug}>
+                <Link
+                  href={`/categories/${category.slug}`}
+                  className="panel flex h-full flex-col gap-1 p-3 hover:bg-bg-subtle"
+                >
+                  <span className="flex items-baseline justify-between gap-2">
+                    <span className="font-medium">{category.name}</span>
+                    <span className="font-mono text-[12px] text-text-muted">
+                      {category.skillCount}
+                      <span className="sr-only"> skills</span>
+                    </span>
+                  </span>
+                  <span className="text-[13px] leading-5 text-text-muted">
+                    {category.description}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+
+      {verified.items.length > 0 && (
+        <Section
+          id="verified-heading"
+          title="Verified"
+          note="The current version passed the published verification policy."
+          href="/verified"
+        >
+          <SkillList skills={verified.items} now={now} />
+        </Section>
+      )}
+
+      {updated.items.length > 0 && (
+        <Section id="new-heading" title="Newly added" href="/explore?sort=newest">
+          <SkillList skills={updated.items} now={now} />
+        </Section>
+      )}
+
+      {collections.length > 0 && (
+        <Section id="collections-heading" title="Collections" href="/collections">
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {collections.map((collection) => (
+              <li key={collection.slug}>
+                <Link
+                  href={`/collections/${collection.slug}`}
+                  className="panel flex h-full flex-col gap-1 p-3 hover:bg-bg-subtle"
+                >
+                  <span className="font-medium">{collection.title}</span>
+                  <span className="text-[13px] leading-5 text-text-muted">
+                    {collection.description}
+                  </span>
+                  <span className="text-[12px] text-text-subtle">
+                    {collection.skillCount} skills
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
 
       <section
-        aria-labelledby="status-heading"
-        className="mt-10 max-w-xl rounded-md border border-border bg-bg-subtle p-4"
+        aria-labelledby="contribute-heading"
+        className="mt-10 flex flex-col gap-3 rounded-md border border-border bg-bg-subtle p-4 sm:flex-row sm:items-center sm:justify-between"
       >
-        <h2 id="status-heading" className="text-[16px] font-semibold leading-6">
-          Project status: foundation
-        </h2>
-        <p className="mt-1 text-[13px] leading-5 text-text-muted">
-          The marketplace pages are not built yet. This shell confirms that the application, design
-          tokens and database are wired together.
-        </p>
-        {snapshot ? (
-          <dl className="mt-4 grid grid-cols-3 gap-4">
-            {(
-              [
-                ['Categories', snapshot.categories],
-                ['Repositories', snapshot.repositories],
-                ['Skills', snapshot.skills],
-              ] as const
-            ).map(([label, value]) => (
-              <div key={label}>
-                <dt className="text-[12px] font-medium leading-4 text-text-subtle">{label}</dt>
-                <dd className="font-mono text-[20px] leading-7">{value}</dd>
-              </div>
-            ))}
-          </dl>
-        ) : (
-          <p className="mt-4 rounded-sm bg-flagged-bg px-3 py-2 text-[13px] text-flagged-fg">
-            The database is not reachable or not migrated. Run <code>pnpm bootstrap</code>.
+        <div>
+          <h2 id="contribute-heading" className="text-[16px] font-semibold leading-6">
+            Built in the open
+          </h2>
+          <p className="text-[13px] leading-5 text-text-muted">
+            Add a skill repository, improve a security rule, or run your own instance.
           </p>
-        )}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/submit" className="btn btn-primary">
+            Submit a skill
+          </Link>
+          <a href={REPOSITORY_URL} className="btn" rel="noopener noreferrer">
+            Contribute on GitHub
+          </a>
+        </div>
       </section>
-    </div>
+    </>
   );
 }

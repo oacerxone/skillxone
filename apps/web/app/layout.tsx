@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { GeistMono } from 'geist/font/mono';
 import { GeistSans } from 'geist/font/sans';
 import { hasDevFixtures } from '@skillxone/database';
+import { SearchShortcut } from '@/components/search-shortcut';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
 import { getDatabase } from '@/lib/db';
@@ -65,6 +66,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {children}
         </main>
         <SiteFooter />
+        <SearchShortcut />
       </body>
     </html>
   );

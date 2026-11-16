@@ -4,6 +4,7 @@ export { migrateToLatest, migrateDownAll, MigrationError } from './migrate';
 export type { MigrationOutcome } from './migrate';
 export { migrations } from './migrations';
 export { INITIAL_TABLES } from './migrations/0001_initial';
+export * from './catalog';
 export { backoffDelayMs, createJobQueue } from './jobs';
 export type { EnqueueOptions, EnqueueResult, JobQueue, JobQueueOptions } from './jobs';
 export { DEFAULT_CATEGORIES, seedCategories } from './seed/categories';
