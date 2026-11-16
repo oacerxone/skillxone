@@ -1,0 +1,84 @@
+name: Static catalog
+
+# Deployment Mode C: rebuild the catalog from GitHub on a schedule and publish it to GitHub
+# Pages. Runs are idempotent; a skipped or delayed run only delays freshness. The SQLite
+# database is cached between runs so star history (and therefore trends) accumulates.
+
+on:
+  schedule:
+    - cron: '23 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: static-catalog
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Index, scan and export
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      DATABASE_URL: file:./data/catalog.db
+      # The workflow token reads public repositories with a higher rate limit than anonymous calls.
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      SCAN_TIMEOUT_SECONDS: '60'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Restore the catalog database
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: data/catalog.db
+          key: catalog-db-${{ github.run_id }}
+          restore-keys: catalog-db-
+      - name: Migrate and seed
+        run: |
+          pnpm worker migrate
+          pnpm worker seed
+      - name: Discover and sync repositories
+        run: |
+          pnpm worker discover --provider seed
+          pnpm worker discover --provider collection
+          pnpm worker discover --provider recrawl
+          pnpm worker drain
+      - name: Scan, rank and index
+        run: |
+          pnpm worker expire-verifications
+          pnpm worker scan --queue
+          pnpm worker drain
+          pnpm worker rank
+          pnpm worker reindex
+      - name: Export
+        env:
+          NEXT_PUBLIC_REPOSITORY_URL: ${{ github.server_url }}/${{ github.repository }}
+        run: pnpm export:static out-static
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: out-static
+
+  deploy:
+    name: Publish to GitHub Pages
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

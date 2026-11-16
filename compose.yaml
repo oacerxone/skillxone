@@ -1,0 +1,53 @@
+# Deployment Mode B. Start the web app:          docker compose up -d
+# Add the background worker (GitHub sync, scans): docker compose --profile worker up -d
+# Use PostgreSQL instead of SQLite: set DATABASE_URL (see docs/deployment/docker.md) and add
+#                                                --profile postgres
+name: skillxone
+
+x-app: &app
+  build: .
+  image: skillxone:local
+  restart: unless-stopped
+  env_file:
+    - path: .env
+      required: false
+  environment:
+    DATABASE_URL: ${DATABASE_URL:-file:./data/skillxone.db}
+    SITE_URL: ${SITE_URL:-http://localhost:3000}
+  volumes:
+    - data:/app/data
+
+services:
+  app:
+    <<: *app
+    ports:
+      - '${PORT:-3000}:3000'
+
+  worker:
+    <<: *app
+    profiles: [worker]
+    command: ['pnpm', 'worker', 'serve', '--poll', '60']
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      disable: true
+
+  postgres:
+    image: postgres:17.9-alpine@sha256:c7526c0f6c3f30260a563d7bcf8ad778effac59a44f8ffa86678c35418338609
+    profiles: [postgres]
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: skillxone
+      POSTGRES_DB: skillxone
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env to use the postgres profile}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U skillxone']
+      interval: 5s
+      retries: 10
+
+volumes:
+  data:
+  pgdata:

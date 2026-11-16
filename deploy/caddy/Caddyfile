@@ -1,0 +1,15 @@
+# Replace skills.example.org with your domain. Caddy obtains and renews the TLS certificate.
+skills.example.org {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+
+	# Static build assets are content-hashed and safe to cache for a long time.
+	@static path /_next/static/*
+	header @static Cache-Control "public, max-age=31536000, immutable"
+
+	reverse_proxy 127.0.0.1:3000
+}

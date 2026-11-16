@@ -1,0 +1,32 @@
+[Unit]
+Description=skillxone web app
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=skillxone
+Group=skillxone
+WorkingDirectory=/opt/skillxone
+Environment=NODE_ENV=production
+Environment=COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+Environment=COREPACK_HOME=/opt/skillxone/.corepack
+Environment=PATH=/opt/skillxone/.bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/opt/skillxone/.bin/pnpm --filter @skillxone/web exec next start -H 127.0.0.1 -p 3000
+Restart=on-failure
+RestartSec=5
+# Hardening: the app writes only to its data directory.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/skillxone/data /opt/skillxone/apps/web/.next/cache
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryMax=700M
+
+[Install]
+WantedBy=multi-user.target

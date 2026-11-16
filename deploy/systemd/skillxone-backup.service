@@ -1,0 +1,19 @@
+[Unit]
+Description=skillxone database backup
+
+[Service]
+Type=oneshot
+User=skillxone
+Group=skillxone
+WorkingDirectory=/opt/skillxone
+Environment=COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+Environment=COREPACK_HOME=/opt/skillxone/.corepack
+Environment=PATH=/opt/skillxone/.bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/opt/skillxone/.bin/pnpm worker backup
+# Keep 14 days of local backups. Copy them off the server as well (see docs/deployment/backup.md).
+ExecStartPost=/usr/bin/find /opt/skillxone/data/backups -name 'skillxone-*.db' -mtime +14 -delete
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/skillxone/data
+PrivateTmp=true

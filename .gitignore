@@ -22,3 +22,4 @@ data/
 # browser test output
 test-results/
 playwright-report/
+out-static/

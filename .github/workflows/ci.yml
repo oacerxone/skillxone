@@ -57,6 +57,48 @@ jobs:
         env:
           SKILLS_CONTRACT: '1'
 
+  static-export:
+    name: Static export (Mode C)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:static
+
+  docker:
+    name: Docker image builds and passes its health check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: docker build -t skillxone:ci .
+      - name: Start the container and wait for a healthy status
+        run: |
+          docker run -d --name skillxone -p 3000:3000 skillxone:ci
+          for i in $(seq 1 30); do
+            status=$(docker inspect -f '{{.State.Health.Status}}' skillxone)
+            echo "health: $status"
+            if [ "$status" = healthy ]; then break; fi
+            sleep 5
+          done
+          test "$(docker inspect -f '{{.State.Health.Status}}' skillxone)" = healthy
+          curl -fsS http://localhost:3000/api/health
+          curl -fsS -o /dev/null http://localhost:3000/
+          docker exec skillxone pnpm worker status
+      - if: failure()
+        run: docker logs skillxone || true
+
   e2e:
     name: Browser and accessibility tests
     runs-on: ubuntu-24.04

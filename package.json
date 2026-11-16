@@ -24,7 +24,9 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit -p . && pnpm -r typecheck",
     "test": "vitest run",
-    "test:e2e": "node scripts/bootstrap.mjs && pnpm build && playwright test"
+    "test:e2e": "node scripts/bootstrap.mjs && pnpm build && playwright test",
+    "export:static": "tsx --tsconfig apps/web/tsconfig.json apps/web/scripts/export-static.ts",
+    "test:static": "node scripts/bootstrap.mjs && pnpm export:static && playwright test -c playwright.static.config.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",

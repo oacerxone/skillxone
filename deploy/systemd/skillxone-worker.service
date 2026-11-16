@@ -1,0 +1,26 @@
+[Unit]
+Description=skillxone worker run (schedules, sync, scans)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=skillxone
+Group=skillxone
+WorkingDirectory=/opt/skillxone
+Environment=NODE_ENV=production
+Environment=COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+Environment=COREPACK_HOME=/opt/skillxone/.corepack
+Environment=PATH=/opt/skillxone/.bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/opt/skillxone/.bin/pnpm worker schedule
+ExecStart=/opt/skillxone/.bin/pnpm worker drain
+# A run that hangs is stopped; its job is reclaimed on the next run.
+TimeoutStartSec=50min
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/skillxone/data
+PrivateTmp=true
+PrivateDevices=true
+MemoryMax=500M
+Nice=10

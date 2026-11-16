@@ -2,8 +2,10 @@ import { randomUUID } from 'node:crypto';
 import { hostname } from 'node:os';
 import { parseArgs } from 'node:util';
 import {
+  backupSqlite,
   createJobQueue,
   listJobs,
+  restoreSqlite,
   hasDevFixtures,
   migrateToLatest,
   openDatabase,
@@ -12,7 +14,8 @@ import {
   seedDevFixtures,
 } from '@skillxone/database';
 import type { DatabaseHandle } from '@skillxone/database';
-import { EnvError, loadRootEnvFile, parseEnv } from '@skillxone/shared';
+import { join } from 'node:path';
+import { EnvError, findWorkspaceRoot, loadRootEnvFile, parseEnv } from '@skillxone/shared';
 import type { Env } from '@skillxone/shared';
 import { GitHubClient, parseRepoRef } from '@skillxone/github';
 import { createSearchBackend } from '@skillxone/search';
@@ -56,6 +59,8 @@ Commands:
   drain                   Run queued jobs until none are runnable, then exit  [--max <n>]
   serve                   Run schedules and jobs continuously until stopped  [--poll <seconds>]
   jobs [--status s]       List recent jobs  [--limit <n>]
+  backup [path]           Copy the SQLite database safely while it runs (default data/backups/)
+  restore <path> --yes    Replace the database with a backup (stop the web app and worker first)
   help                    Show this message
 `;
 
@@ -182,6 +187,19 @@ const commands: Record<string, Command> = {
         `${job.createdAt}  ${job.status.padEnd(9)} ${job.type.padEnd(22)} attempts ${job.attempts}/${job.maxAttempts}${job.schedule ? `  [${job.schedule}]` : ''}${job.lastError ? `\n    ${job.lastError.split('\n')[0]!.slice(0, 160)}` : ''}`,
       );
     }
+  },
+
+  async backup(args, { env }) {
+    const target =
+      args[0] ??
+      join(
+        findWorkspaceRoot(),
+        'data',
+        'backups',
+        `skillxone-${new Date().toISOString().replace(/[:.]/g, '-')}.db`,
+      );
+    const result = await backupSqlite(env.DATABASE_URL, target);
+    console.log(`Backup written to ${result.path} (${result.bytes} bytes) and verified.`);
   },
 
   async serve(args, { env, handle }) {
@@ -409,13 +427,31 @@ async function main(): Promise<void> {
     return;
   }
   const command = commands[name];
-  if (!command) throw new UsageError(`Unknown command "${name}".`);
+  if (!command && name !== 'restore') throw new UsageError(`Unknown command "${name}".`);
 
   loadRootEnvFile();
   const env = parseEnv();
+  if (name === 'restore') {
+    // Runs without opening the database, so nothing holds the file being replaced.
+    const { values, positionals } = parseArgs({
+      args,
+      allowPositionals: true,
+      options: { yes: { type: 'boolean' } },
+    });
+    if (!positionals[0]) throw new UsageError('restore requires the path of a backup file.');
+    if (!values.yes)
+      throw new UsageError(
+        'restore replaces the database. Stop the web app and worker, then add --yes.',
+      );
+    const result = await restoreSqlite(positionals[0], env.DATABASE_URL);
+    console.log(
+      `Restored ${result.restored}.${result.previous ? ` The previous database was kept as ${result.previous}.` : ''}`,
+    );
+    return;
+  }
   const handle = await openDatabase(env.DATABASE_URL);
   try {
-    await command(args, { env, handle });
+    await command!(args, { env, handle });
   } finally {
     await handle.close();
   }
