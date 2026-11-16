@@ -57,6 +57,20 @@ for (const theme of ['light', 'dark'] as const) {
           await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
         }
 
+        // Check the settled page: wait for one-shot entrance animations (they fade text in)
+        // to finish. Infinite decorative loops and scroll-linked animations are left running.
+        await page.evaluate(() =>
+          Promise.all(
+            document
+              .getAnimations()
+              .filter(
+                (a) =>
+                  a.timeline === document.timeline && a.effect?.getTiming().iterations !== Infinity,
+              )
+              .map((a) => a.finished.catch(() => undefined)),
+          ),
+        );
+
         const results = await new AxeBuilder({ page })
           .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
           .analyze();

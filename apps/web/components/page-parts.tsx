@@ -25,7 +25,7 @@ export function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section aria-labelledby={id} className="mt-10">
+    <section aria-labelledby={id} className="mt-14">
       <div className="mb-3 flex items-baseline justify-between gap-4">
         <div>
           <h2 id={id} className="text-[20px] font-semibold leading-7">

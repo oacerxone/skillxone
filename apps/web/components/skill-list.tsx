@@ -59,7 +59,7 @@ interface ListProps {
  */
 export function SkillList({ skills, terms = [], now = new Date() }: ListProps) {
   return (
-    <div className="panel overflow-hidden">
+    <div className="panel reveal-scroll overflow-hidden shadow-[0_1px_2px_color-mix(in_oklab,var(--text)_5%,transparent)]">
       <table className="w-full border-collapse text-left text-[13px] leading-5">
         <thead className="hidden border-b border-border bg-bg-subtle text-[12px] font-medium text-text-muted lg:table-header-group">
           <tr>
@@ -87,7 +87,7 @@ export function SkillList({ skills, terms = [], now = new Date() }: ListProps) {
           {skills.map((skill) => (
             <tr
               key={skill.id}
-              className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-border px-3 py-3 last:border-b-0 lg:table-row lg:p-0"
+              className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-border px-3 py-3 transition-colors duration-150 last:border-b-0 hover:bg-bg-subtle lg:table-row lg:p-0"
             >
               <th scope="row" className="w-full font-normal lg:w-auto lg:px-3 lg:py-2.5">
                 <Link
@@ -142,7 +142,7 @@ export function SkillCards({ skills, terms = [], now = new Date() }: ListProps) 
   return (
     <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {skills.map((skill) => (
-        <li key={skill.id} className="panel flex flex-col gap-2 p-3">
+        <li key={skill.id} className="panel card-lift flex flex-col gap-2 p-4">
           <div className="flex items-start justify-between gap-2">
             <Link href={skillHref(skill.slug)} className="font-medium hover:underline">
               <Highlight text={skill.name} terms={terms} />
