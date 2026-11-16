@@ -1,0 +1,71 @@
+@import 'tailwindcss';
+@import '@skillxone/ui/tokens.css';
+
+/* Dark styles apply only when the user has opted in (design-system.md, Accessibility). */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+/* Expose the design tokens to Tailwind utilities: bg-bg, text-text-muted, border-border... */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-subtle: var(--bg-subtle);
+  --color-bg-muted: var(--bg-muted);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-subtle: var(--text-subtle);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-focus: var(--focus);
+  --color-verified-fg: var(--verified-fg);
+  --color-verified-bg: var(--verified-bg);
+  --color-unverified-fg: var(--unverified-fg);
+  --color-unverified-bg: var(--unverified-bg);
+  --color-flagged-fg: var(--flagged-fg);
+  --color-flagged-bg: var(--flagged-bg);
+  --color-warning-fg: var(--warning-fg);
+  --color-warning-bg: var(--warning-bg);
+  --font-sans: var(--ff-sans);
+  --font-mono: var(--ff-mono);
+  --radius-sm: var(--rad-sm);
+  --radius-md: var(--rad-md);
+  --radius-lg: var(--rad-lg);
+}
+
+@layer base {
+  html {
+    font-size: 14px;
+    line-height: 22px;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--ff-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Visible keyboard focus on every interactive element; never removed. */
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: var(--rad-sm);
+  }
+
+  /* Keep focused elements clear of the sticky header (WCAG 2.2 Focus Not Obscured). */
+  :target,
+  :focus {
+    scroll-margin-top: 64px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition-duration: 0s !important;
+      animation-duration: 0s !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

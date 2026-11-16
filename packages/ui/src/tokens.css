@@ -1,0 +1,51 @@
+/* GENERATED from packages/ui/src/tokens.ts by `pnpm tokens`. Do not edit. */
+:root {
+  color-scheme: light;
+  --bg: #ffffff;
+  --bg-subtle: #fafafa;
+  --bg-muted: #f3f4f5;
+  --border: #e5e6e8;
+  --border-strong: #cfd1d5;
+  --text: #111315;
+  --text-muted: #5b616b;
+  --text-subtle: #666c76;
+  --accent: #3b49df;
+  --accent-fg: #ffffff;
+  --focus: #3b49df;
+  --verified-fg: #12703f;
+  --verified-bg: #e9f6ee;
+  --unverified-fg: #5b616b;
+  --unverified-bg: #f3f4f5;
+  --flagged-fg: #b3261e;
+  --flagged-bg: #fdecea;
+  --warning-fg: #8a5a00;
+  --warning-bg: #fdf3dc;
+  --ff-sans: var(--font-geist-sans), system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --ff-mono: var(--font-geist-mono), ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --rad-sm: 4px;
+  --rad-md: 6px;
+  --rad-lg: 8px;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0b0c0e;
+  --bg-subtle: #111316;
+  --bg-muted: #191c20;
+  --border: #24282d;
+  --border-strong: #343940;
+  --text: #edeef0;
+  --text-muted: #9aa1ab;
+  --text-subtle: #8a919c;
+  --accent: #8b95ff;
+  --accent-fg: #0b0c0e;
+  --focus: #a5adff;
+  --verified-fg: #5fd092;
+  --verified-bg: #10241a;
+  --unverified-fg: #9aa1ab;
+  --unverified-bg: #191c20;
+  --flagged-fg: #ff8a80;
+  --flagged-bg: #2a1412;
+  --warning-fg: #f0be5a;
+  --warning-bg: #261d0a;
+}
