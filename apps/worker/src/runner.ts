@@ -55,11 +55,17 @@ export async function drainQueue(
   const signal = options.signal ?? new AbortController().signal;
   const summary: DrainSummary = { succeeded: 0, retried: 0, dead: 0, lost: 0, deferred: 0 };
   let processed = 0;
+  // Job types that hit a rate limit in this run. Their remaining jobs would hit the same
+  // limit, so they are skipped until the next run; other types (such as local scans, which
+  // never call GitHub) keep running.
+  const limited = new Set<string>();
 
   while (!signal.aborted && (options.maxJobs === undefined || processed < options.maxJobs)) {
     // Only claim types this worker can run, so an older worker never burns the
     // attempts of a job type introduced by a newer release.
-    const job = await queue.claim(options.workerId, Object.keys(processors), leaseMs);
+    const types = Object.keys(processors).filter((type) => !limited.has(type));
+    if (types.length === 0) break;
+    const job = await queue.claim(options.workerId, types, leaseMs);
     if (!job) break;
     processed += 1;
 
@@ -90,8 +96,9 @@ export async function drainQueue(
         summary.deferred += parked ? 1 : 0;
         if (!parked) summary.lost += 1;
         options.onEvent?.({ kind: parked ? 'deferred' : 'lost', job, error: message });
-        // Every other job of this kind would hit the same limit, so stop this run.
-        break;
+        // Every other job of this kind would hit the same limit: skip the type, not the run.
+        limited.add(job.type);
+        continue;
       }
       const outcome = await queue.fail(job.id, options.workerId, message);
       if (outcome === 'retry') summary.retried += 1;

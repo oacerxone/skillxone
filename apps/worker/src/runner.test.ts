@@ -74,7 +74,30 @@ describe('drainQueue', () => {
     expect((await queue.get(interrupted.id))?.attempts).toBe(2);
   });
 
-  it('parks rate-limited jobs until the reset time and stops the run', async () => {
+  it('keeps running other job types after one type is rate limited', async () => {
+    const limitedJob = await queue.enqueue('limited', {}, { priority: 10 });
+    await queue.enqueue('limited', {}, { priority: 10 });
+    const local = await queue.enqueue('noop');
+    const resetAt = new Date(now + 30 * 60_000);
+    let limitedCalls = 0;
+    const summary = await drainQueue(
+      queue,
+      {
+        ...baseProcessors,
+        limited: async () => {
+          limitedCalls += 1;
+          throw Object.assign(new Error('rate limited'), { resetAt });
+        },
+      },
+      { workerId: 'w' },
+    );
+    expect(limitedCalls).toBe(1);
+    expect(summary).toMatchObject({ deferred: 1, succeeded: 1 });
+    expect((await queue.get(local.id))?.status).toBe('succeeded');
+    expect((await queue.get(limitedJob.id))?.run_after).toBe(resetAt.toISOString());
+  });
+
+  it('parks rate-limited jobs until the reset time and skips that type for the run', async () => {
     const first = await queue.enqueue('limited', {}, { maxAttempts: 1 });
     const second = await queue.enqueue('limited', {}, { maxAttempts: 1 });
     const resetAt = new Date(now + 30 * 60_000);
