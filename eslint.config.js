@@ -46,6 +46,8 @@ export default tseslint.config(
       '**/node_modules/**',
       '**/.next/**',
       '**/out/**',
+      'out-static/**',
+      'test-results/**',
       '**/dist/**',
       'data/**',
       '**/next-env.d.ts',

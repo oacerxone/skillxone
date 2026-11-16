@@ -1,6 +1,7 @@
 pnpm-lock.yaml
 .next
-out
-data
+/out
+/data
 LICENSE
 packages/ui/src/tokens.css
+out-static

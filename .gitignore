@@ -1,6 +1,6 @@
 node_modules/
 .next/
-out/
+/out/
 dist/
 coverage/
 *.tsbuildinfo
@@ -9,7 +9,7 @@ next-env.d.ts
 # local configuration and data
 .env
 .env.local
-data/
+/data/
 *.db
 *.db-wal
 *.db-shm

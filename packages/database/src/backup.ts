@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, rmSync, statSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { findWorkspaceRoot } from '@skillxone/shared';
+import type BetterSqlite3 from 'better-sqlite3';
 import { resolveSqlitePath } from './connection';
 
 /**
@@ -9,10 +10,8 @@ import { resolveSqlitePath } from './connection';
  * pg_dump and pg_restore instead (see docs/deployment).
  */
 
-type BetterSqlite = typeof import('better-sqlite3');
-
-async function driver(): Promise<BetterSqlite> {
-  return (await import('better-sqlite3')).default as unknown as BetterSqlite;
+async function driver(): Promise<typeof BetterSqlite3> {
+  return (await import('better-sqlite3')).default;
 }
 
 function sqlitePath(url: string, baseDir: string): string {
