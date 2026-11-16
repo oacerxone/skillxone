@@ -30,8 +30,9 @@ const ENDPOINTS = [
   ['GET', '/api/v1/categories', 'Categories with counts.', 'Available'],
   ['GET', '/api/v1/trending', 'Trending skills, with the basis used.', 'Available'],
   ['GET', '/api/v1/repositories/:id', 'One repository.', 'Available'],
-  ['POST', '/api/v1/submissions', 'Suggest a repository.', 'Planned'],
-  ['POST', '/api/v1/reports', 'Report a problem.', 'Planned'],
+  ['POST', '/api/v1/submissions', 'Suggest a GitHub repository (JSON body).', 'Available'],
+  ['POST', '/api/v1/reports', 'Report a problem with a skill or finding (JSON body).', 'Available'],
+  ['GET', '/api/v1/openapi.json', 'OpenAPI 3.1 description of this API.', 'Available'],
 ] as const;
 
 export default function ApiDocsPage() {

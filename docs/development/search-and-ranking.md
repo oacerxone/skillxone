@@ -54,7 +54,7 @@ Quality is a stored, query-independent score from 0 to 1: a weighted sum of sign
 After the sum:
 
 - A **flagged** skill's score is multiplied by 0.25, and it gets no trend score.
-- Each open community report subtracts 0.03, up to 0.15.
+- Each community report a moderator has triaged (confirmed as under review) subtracts 0.03, up to 0.15. Untriaged reports do not count, because filing one costs nothing.
 
 Every score stores its per-signal values and a plain-language explanation. The skill page shows the three largest contributions, and `GET /api/v1/skills/:id` returns all of them.
 

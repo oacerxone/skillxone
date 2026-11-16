@@ -107,7 +107,9 @@ export async function loadRankingFacts(db: Db, now: Date): Promise<RankingFacts[
   const reports = await db
     .selectFrom('reports')
     .select(['skill_id', (eb) => eb.fn.countAll<number>().as('n')])
-    .where('status', 'in', ['open', 'triaged'])
+    // Only reports a moderator has triaged count: an untriaged report costs nothing to file,
+    // so counting it would let anyone push a skill down the rankings.
+    .where('status', '=', 'triaged')
     .where('skill_id', 'is not', null)
     .groupBy('skill_id')
     .execute();

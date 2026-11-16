@@ -2,8 +2,9 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getSkillBySlug } from '@skillxone/database';
 import { PageHeader } from '@/components/page-parts';
-import { PreviewForm } from '@/components/preview-form';
+import { JsonForm } from '@/components/json-form';
 import { skillHref } from '@/components/skill-list';
+import { currentSession } from '@/lib/auth';
 import { getDatabase } from '@/lib/db';
 
 export const metadata: Metadata = { title: 'Report a problem' };
@@ -33,6 +34,10 @@ export default async function ReportPage({
   // Only a skill that exists is echoed back; an unknown value from the URL is ignored.
   const skill = slug ? await getSkillBySlug(db, slug) : undefined;
   const finding = skill?.report?.findings.find((f) => f.id === first(query.finding));
+  const session = await currentSession();
+  const extra: Record<string, string> = {};
+  if (skill) extra.skillId = skill.id;
+  if (finding) extra.findingId = finding.id;
 
   return (
     <>
@@ -41,16 +46,18 @@ export default async function ReportPage({
         information.
       </PageHeader>
 
-      <p
-        role="note"
-        className="mb-6 max-w-xl rounded-sm bg-warning-bg px-3 py-2 text-[13px] text-warning-fg"
-      >
-        Reports are not open yet in this build. You can try the form, but nothing is sent or stored.
+      <p className="mb-6 max-w-xl text-[13px] leading-5 text-text-muted">
+        Maintainers read every report. A report counts against a skill&apos;s ranking only after a
+        maintainer has triaged it, so filing one does not by itself change anything.
       </p>
 
-      <PreviewForm
+      <JsonForm
+        endpoint="/api/v1/reports"
         submitLabel="Send report"
-        notSentMessage="Not sent: reports are not enabled in this build."
+        extra={extra}
+        csrf={session?.csrf}
+        successMessage="Thank you. Your report was sent to the maintainers."
+        duplicateMessage="You already have an open report of this kind for this skill."
       >
         <div className="text-[13px] leading-5">
           <span className="label">About</span>
@@ -115,7 +122,7 @@ export default async function ReportPage({
             maxLength={200}
           />
         </div>
-      </PreviewForm>
+      </JsonForm>
     </>
   );
 }

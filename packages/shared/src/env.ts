@@ -2,6 +2,27 @@ import { z } from 'zod';
 
 const positiveInt = (fallback: number) => z.coerce.number().int().min(1).max(64).default(fallback);
 
+/** Comma-separated numeric GitHub user ids. */
+const githubIdList = z
+  .string()
+  .optional()
+  .transform((v, ctx) => {
+    const ids = (v ?? '')
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean);
+    if (ids.some((id) => !/^\d{1,12}$/.test(id))) {
+      ctx.addIssue({ code: 'custom', message: 'must be comma-separated numeric GitHub user ids' });
+      return z.NEVER;
+    }
+    return ids.map(Number);
+  });
+
+const optionalString = z
+  .string()
+  .optional()
+  .transform((v) => (v ? v : undefined));
+
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   DATABASE_URL: z
@@ -38,6 +59,12 @@ const envSchema = z.object({
     .string()
     .optional()
     .transform((v) => (v ? v : undefined)),
+  /** GitHub OAuth app for sign-in. Without both, the site runs without accounts and admin. */
+  GITHUB_OAUTH_CLIENT_ID: optionalString,
+  GITHUB_OAUTH_CLIENT_SECRET: optionalString,
+  /** Numeric GitHub user ids granted the admin and moderator roles at sign-in. */
+  ADMIN_GITHUB_IDS: githubIdList,
+  MODERATOR_GITHUB_IDS: githubIdList,
   ALLOW_DEV_FIXTURES: z
     .enum(['0', '1'])
     .default('0')

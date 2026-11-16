@@ -8,11 +8,14 @@ const config: NextConfig = {
     '@skillxone/database',
     '@skillxone/ui',
     '@skillxone/installer',
+    '@skillxone/github',
   ],
   // Native and server-only drivers must not be bundled.
   serverExternalPackages: ['better-sqlite3', 'pg'],
   outputFileTracingRoot: path.join(import.meta.dirname, '../..'),
   poweredByHeader: false,
+  // unauthorized() and forbidden() give admin pages real 401 and 403 statuses.
+  experimental: { authInterrupts: true },
   async headers() {
     return [
       {

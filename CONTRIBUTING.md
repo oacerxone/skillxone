@@ -46,11 +46,11 @@ All four run in CI and must pass.
 - Include tests for behaviour changes.
 - Update documentation that the change makes wrong.
 - Keep the change focused; unrelated refactoring belongs in its own pull request.
-- Changes to security rules, installation behaviour, authentication or workflows require review by a maintainer of that area.
+- Changes to security rules, installation behaviour, authentication or workflows require review by a security maintainer (see [GOVERNANCE.md](GOVERNANCE.md)).
 
 ## Where things go
 
-See the layout table in [AGENTS.md](AGENTS.md) and the module boundaries in [docs/architecture/overview.md](docs/architecture/overview.md). Guides for adding an agent adapter, a security rule, a discovery provider or a ranking signal will be added with the packages they describe.
+See the layout table in [AGENTS.md](AGENTS.md) and the module boundaries in [docs/architecture/overview.md](docs/architecture/overview.md). Guides for adding an agent, a security rule, a discovery provider or a ranking signal are in [docs/development/extending.md](docs/development/extending.md). How decisions are made and who reviews what is in [GOVERNANCE.md](GOVERNANCE.md).
 
 ## Licensing of contributions
 

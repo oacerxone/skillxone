@@ -1,0 +1,27 @@
+name: Report an indexed skill
+description: A skill in the public catalog looks malicious, is mislabelled, or should be taken down.
+labels: [catalog-report]
+body:
+  - type: markdown
+    attributes:
+      value: A skill that looks malicious is not a vulnerability in this software, so it is fine to report it here. Self-hosted sites handle their own catalogs.
+  - type: input
+    id: skill
+    attributes:
+      label: Skill
+      placeholder: owner/repo/skill-name
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind of report
+      options: [Security concern, Inaccurate information, Duplicate, Takedown request, Other]
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+    validations:
+      required: true

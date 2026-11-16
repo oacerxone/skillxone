@@ -325,3 +325,21 @@ export async function listJobs(
     createdAt: row.created_at,
   }));
 }
+
+/** Puts a dead or failed job back in the queue with a fresh set of attempts. */
+export async function requeueJob(db: Kysely<Database>, id: string, now: Date): Promise<boolean> {
+  const result = await db
+    .updateTable('sync_jobs')
+    .set({
+      status: 'queued',
+      attempts: 0,
+      run_after: toIso(now),
+      locked_by: null,
+      locked_until: null,
+      finished_at: null,
+    })
+    .where('id', '=', id)
+    .where('status', 'in', ['dead', 'failed', 'cancelled'])
+    .executeTakeFirst();
+  return Number(result.numUpdatedRows ?? 0) > 0;
+}

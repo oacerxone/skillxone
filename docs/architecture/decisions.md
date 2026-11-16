@@ -61,7 +61,7 @@ All records are **proposed** until the Phase 0 plan is approved. Each is split i
 | Security                   | 0.13           | Verified 1.0, unverified 0.5, flagged 0                                 |
 | Verified compatibility     | 0.05           | Share of supported agents at `verified` or `declared` level             |
 
-- **Gates applied after the sum:** a flagged skill's quality is multiplied by 0.25 and it is excluded from Trending, Verified and homepage sections; each open community report under review subtracts a small fixed amount up to a cap.
+- **Gates applied after the sum:** a flagged skill's quality is multiplied by 0.25 and it is excluded from Trending, Verified and homepage sections; each community report a moderator has triaged as under review subtracts a small fixed amount up to a cap.
 - **Search ordering** is `relevance × (0.6 + 0.4 × quality)`, so quality reorders close matches but cannot lift an irrelevant result.
 - **Views:** Trending (star growth over 7 days, quality-gated), Rising (growth rate among repositories under a star threshold), Most popular, Recently updated, Newly added, Verified, Best maintained, and each of these per category.
 - **Explanations:** every score stores its per-signal values; the detail page lists the top contributing signals in plain language.

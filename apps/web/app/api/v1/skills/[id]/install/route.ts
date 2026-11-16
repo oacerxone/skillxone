@@ -28,15 +28,15 @@ export const GET = apiHandler(
     const shell = params.get('shell') ?? 'posix';
     const pin = params.get('pin') ?? 'true';
     if (!AGENT_IDS.includes(agent))
-      return apiError(400, 'invalid_parameter', `agent must be one of: ${AGENT_IDS.join(', ')}.`);
+      return apiError(400, 'INVALID_REQUEST', `agent must be one of: ${AGENT_IDS.join(', ')}.`);
     if (!SCOPES.includes(scope))
-      return apiError(400, 'invalid_parameter', 'scope must be project or global.');
+      return apiError(400, 'INVALID_REQUEST', 'scope must be project or global.');
     if (!METHODS.includes(method))
-      return apiError(400, 'invalid_parameter', 'method must be symlink, copy or manual.');
+      return apiError(400, 'INVALID_REQUEST', 'method must be symlink, copy or manual.');
     if (shell !== 'posix' && shell !== 'powershell')
-      return apiError(400, 'invalid_parameter', 'shell must be posix or powershell.');
+      return apiError(400, 'INVALID_REQUEST', 'shell must be posix or powershell.');
     if (pin !== 'true' && pin !== 'false')
-      return apiError(400, 'invalid_parameter', 'pin must be true or false.');
+      return apiError(400, 'INVALID_REQUEST', 'pin must be true or false.');
 
     const verifiedCommit =
       skill.verificationState === 'VERIFIED' ? skill.currentVersion?.commitSha : undefined;

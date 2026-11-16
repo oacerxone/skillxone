@@ -1,0 +1,29 @@
+name: Security finding appeal (false positive)
+description: A scanner rule reported something that is not a problem.
+labels: [security-rule, false-positive]
+body:
+  - type: markdown
+    attributes:
+      value: >
+        On a running site you can also use "Report as false positive" on the finding itself. Use this
+        form when the rule itself is wrong and should change for everyone. See docs/security/verification-policy.md.
+  - type: input
+    id: rule
+    attributes:
+      label: Rule id
+      placeholder: CMD-REMOTE-PIPE-SHELL
+    validations:
+      required: true
+  - type: textarea
+    id: example
+    attributes:
+      label: The text that triggered it
+      description: A short excerpt, or a link to the file and line in a public repository.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it is not a problem
+    validations:
+      required: true

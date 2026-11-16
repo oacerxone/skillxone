@@ -17,6 +17,10 @@ export function SiteFooter() {
               {item.label}
             </Link>
           ))}
+          {/* A route handler, not a page: a plain link avoids client-side prefetching. */}
+          <a href="/admin" className="hover:text-text">
+            Maintainers
+          </a>
         </nav>
       </div>
     </footer>

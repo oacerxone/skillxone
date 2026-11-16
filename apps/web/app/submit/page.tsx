@@ -1,10 +1,14 @@
 import type { Metadata } from 'next';
 import { PageHeader } from '@/components/page-parts';
-import { PreviewForm } from '@/components/preview-form';
+import { JsonForm } from '@/components/json-form';
+import { currentSession } from '@/lib/auth';
 
 export const metadata: Metadata = { title: 'Submit a skill repository' };
 
-export default function SubmitPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function SubmitPage() {
+  const session = await currentSession();
   return (
     <>
       <PageHeader title="Submit a skill repository">
@@ -12,17 +16,18 @@ export default function SubmitPage() {
         Every skill found in it is indexed separately.
       </PageHeader>
 
-      <p
-        role="note"
-        className="mb-6 max-w-xl rounded-sm bg-warning-bg px-3 py-2 text-[13px] text-warning-fg"
-      >
-        Submissions are not open yet in this build. You can try the form, but nothing is sent or
-        stored.
+      <p className="mb-6 max-w-xl text-[13px] leading-5 text-text-muted">
+        A maintainer reviews each suggestion before it is indexed. Nothing is fetched from GitHub
+        when you submit. Suggesting a repository that is already listed or already suggested shows
+        the existing entry instead of adding a new one.
       </p>
 
-      <PreviewForm
+      <JsonForm
+        endpoint="/api/v1/submissions"
         submitLabel="Submit repository"
-        notSentMessage="Not sent: submissions are not enabled in this build."
+        csrf={session?.csrf}
+        successMessage="Thank you. The repository is queued for review."
+        duplicateMessage="This repository has already been suggested or is already listed."
       >
         <div>
           <label htmlFor="submit-repo" className="label">
@@ -50,7 +55,7 @@ export default function SubmitPage() {
           </label>
           <textarea id="submit-note" name="note" className="input" rows={4} maxLength={1000} />
         </div>
-      </PreviewForm>
+      </JsonForm>
     </>
   );
 }

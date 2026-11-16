@@ -10,7 +10,7 @@ Include what you found, how to reproduce it, the affected version or commit, and
 
 ## Reporting a problem with an indexed skill
 
-A skill that looks malicious, or a security finding you believe is a false positive, is not a vulnerability in this software. Use the report action on the skill's page (available from Phase 8) or the corresponding issue template. The process is described in [docs/security/verification-policy.md](docs/security/verification-policy.md).
+A skill that looks malicious, or a security finding you believe is a false positive, is not a vulnerability in this software. Use the report action on the skill's page or the corresponding issue template. The process is described in [docs/security/verification-policy.md](docs/security/verification-policy.md).
 
 ## Supported versions
 

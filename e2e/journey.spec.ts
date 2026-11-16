@@ -116,12 +116,16 @@ test('unknown pages and skills return 404', async ({ page }) => {
   }
 });
 
-test('forms that are not wired up say so instead of pretending to send', async ({ page }) => {
+test('the submit form sends a suggestion and recognises a duplicate', async ({ page }) => {
+  const repo = `octocat/e2e-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
   await page.goto('/submit');
-  await page.getByLabel('GitHub repository').fill('octocat/hello-world');
+  await page.getByLabel('GitHub repository').fill(repo);
+  await page.getByRole('button', { name: 'Submit repository' }).click();
+  await expect(page.getByText('Thank you. The repository is queued for review.')).toBeVisible();
+  await page.getByLabel('GitHub repository').fill(`https://github.com/${repo}`);
   await page.getByRole('button', { name: 'Submit repository' }).click();
   await expect(
-    page.getByText('Not sent: submissions are not enabled in this build.'),
+    page.getByText('This repository has already been suggested or is already listed.'),
   ).toBeVisible();
 });
 

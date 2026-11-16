@@ -1,0 +1,16 @@
+# Code owners. Areas below need review from a security maintainer (see GOVERNANCE.md).
+#
+# TODO(project owner): replace the commented placeholders with real GitHub handles or teams
+# from MAINTAINERS.md, then uncomment. GitHub ignores commented lines; an owner that does not
+# exist makes the whole file invalid, so do not commit placeholders uncommented.
+#
+# *                         <maintainers>
+# /packages/security/       <security-maintainers>
+# /docs/security/           <security-maintainers>
+# /packages/installer/      <security-maintainers>
+# /apps/web/lib/auth.ts     <security-maintainers>
+# /apps/web/lib/security.ts <security-maintainers>
+# /apps/web/lib/oauth.ts    <security-maintainers>
+# /apps/web/app/auth/       <security-maintainers>
+# /apps/web/app/api/admin/  <security-maintainers>
+# /.github/workflows/       <security-maintainers>

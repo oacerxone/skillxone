@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@skillxone/database": "workspace:*",
+    "@skillxone/github": "workspace:*",
     "@skillxone/installer": "workspace:*",
     "@skillxone/search": "workspace:*",
     "@skillxone/shared": "workspace:*",
@@ -29,6 +30,7 @@
     "unist-util-visit": "^5.2.0"
   },
   "devDependencies": {
+    "@seriousme/openapi-schema-validator": "2.11.0",
     "@tailwindcss/postcss": "^4.3.5",
     "@types/hast": "^3.0.5",
     "@types/react": "^19.3.0",

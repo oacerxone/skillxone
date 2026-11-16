@@ -121,6 +121,8 @@ Acceptance:
 - Duplicate submission returns the existing record. Malformed and non-GitHub URLs are rejected.
 - OpenAPI document validates and matches the implemented routes (test).
 
+Status: done. The GitHub OAuth flow is tested against a fake GitHub only; no OAuth app was available on the development machine. MAINTAINERS.md and CODEOWNERS hold placeholders for the project owner to fill in. The security and release workflows have not run yet, because the repository has not been pushed.
+
 ## Phase 9 — Deployment
 
 - Mode A guide with systemd unit, Caddy and Nginx configs, cron, log rotation, backup, update, rollback. Mode B Dockerfile and Compose with optional profiles. Mode C static export and scheduled catalog workflow.
