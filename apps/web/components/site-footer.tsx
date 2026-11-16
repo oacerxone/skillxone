@@ -68,7 +68,7 @@ export function SiteFooter({ stars }: { stars: number | null }) {
               <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-[13px] text-text-muted">
                 {PROMISES.map(({ icon: Icon, text }) => (
                   <li key={text} className="inline-flex items-center gap-1.5">
-                    <Icon size={14} className="text-verified-fg" />
+                    <Icon size={14} className="text-accent" />
                     {text}
                   </li>
                 ))}
@@ -78,9 +78,9 @@ export function SiteFooter({ stars }: { stars: number | null }) {
               <div className="term">
                 <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
                   <span className="flex items-center gap-1.5" aria-hidden="true">
-                    <span className="size-2.5 rounded-full bg-flagged-fg/70" />
-                    <span className="size-2.5 rounded-full bg-warning-fg/70" />
-                    <span className="size-2.5 rounded-full bg-verified-fg/70" />
+                    <span className="size-2.5 rounded-full bg-border-strong" />
+                    <span className="size-2.5 rounded-full bg-border-strong" />
+                    <span className="size-2.5 rounded-full bg-border-strong" />
                   </span>
                   <span className="font-mono text-[11px] text-text-subtle">Claude Code</span>
                 </div>

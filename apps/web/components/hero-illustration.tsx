@@ -9,9 +9,9 @@ export function HeroIllustration() {
     <div aria-hidden="true" className="relative mx-auto w-full max-w-[460px] select-none">
       <div className="term float">
         <div className="flex items-center gap-1.5 border-b border-border px-3 py-2">
-          <span className="size-2.5 rounded-full bg-flagged-fg/70" />
-          <span className="size-2.5 rounded-full bg-warning-fg/70" />
-          <span className="size-2.5 rounded-full bg-verified-fg/70" />
+          <span className="size-2.5 rounded-full bg-border-strong" />
+          <span className="size-2.5 rounded-full bg-border-strong" />
+          <span className="size-2.5 rounded-full bg-border-strong" />
           <span className="ml-2 font-mono text-[11px] text-text-subtle">~/project</span>
         </div>
         <div className="relative space-y-1.5 px-4 pt-4 pb-4 sm:pb-24 font-mono text-[12.5px] leading-5">
@@ -22,13 +22,13 @@ export function HeroIllustration() {
             <span className="term-caret" />
           </p>
           <p className="term-line text-text-muted" style={{ animationDelay: '2.1s' }}>
-            <span className="text-verified-fg">✓</span> resolved commit a1b2c3d
+            <span className="text-accent">✓</span> resolved commit a1b2c3d
           </p>
           <p className="term-line text-text-muted" style={{ animationDelay: '2.5s' }}>
-            <span className="text-verified-fg">✓</span> security report: no blocking findings
+            <span className="text-accent">✓</span> security report: no blocking findings
           </p>
           <p className="term-line text-text-muted" style={{ animationDelay: '2.9s' }}>
-            <span className="text-verified-fg">✓</span> installed to .claude/skills/name
+            <span className="text-accent">✓</span> installed to .claude/skills/name
           </p>
         </div>
       </div>
@@ -38,7 +38,7 @@ export function HeroIllustration() {
         style={{ '--i': 6 } as React.CSSProperties}
       >
         <div className="flex items-center gap-3">
-          <span className="relative inline-flex size-9 items-center justify-center rounded-full bg-verified-bg text-verified-fg">
+          <span className="relative inline-flex size-9 items-center justify-center rounded-full bg-accent/10 text-accent">
             <span className="pulse-ring" />
             <svg
               width="18"

@@ -136,7 +136,7 @@ export function Avatar({
           fontFamily="var(--ff-sans)"
           fontWeight="650"
           fontSize={initials.length > 1 ? 38 : 46}
-          fill="white"
+          fill="var(--accent-fg)"
         >
           {initials}
         </text>

@@ -1,16 +1,12 @@
 import Link from 'next/link';
-import {
-  listCategories,
-  listCollections,
-  listSkills,
-  metricsHistoryDays,
-} from '@skillxone/database';
+import { listCategories, listCollections, metricsHistoryDays } from '@skillxone/database';
 import { Avatar, CategoryTile, categoryArt } from '@/components/art';
 import { HeroIllustration } from '@/components/hero-illustration';
 import { ArrowRightIcon, StarIcon } from '@/components/icons';
 import { Section } from '@/components/page-parts';
 import { EmptyState, SkillList } from '@/components/skill-list';
 import { getDatabase } from '@/lib/db';
+import { listDiverseSkills } from '@/lib/diverse';
 import { formatCount } from '@/lib/format';
 import { AGENT_IDS, AGENT_INFO } from '@/lib/install';
 import { REPOSITORY_URL } from '@/lib/navigation';
@@ -22,20 +18,18 @@ export default async function HomePage() {
   // Trending is computed from star history this instance has recorded itself. Until a week
   // exists, the section is ordered by recent activity and labelled as such.
   const trendingReady = (await metricsHistoryDays(db)) >= MIN_TREND_HISTORY_DAYS;
+  // Showcase sections take one skill per repository, so a single large repository cannot
+  // fill a section. Totals still count every skill.
   const [active, verified, updated, categories, collections, popular] = await Promise.all([
-    listSkills(db, { sort: trendingReady ? 'trending' : 'updated', pageSize: 8 }),
-    listSkills(db, { verification: 'VERIFIED', sort: 'recommended', pageSize: 6 }),
-    listSkills(db, { sort: 'newest', pageSize: 6 }),
+    listDiverseSkills(db, { sort: trendingReady ? 'trending' : 'updated' }, 8),
+    listDiverseSkills(db, { verification: 'VERIFIED', sort: 'recommended' }, 6),
+    listDiverseSkills(db, { sort: 'newest' }, 6),
     listCategories(db),
     listCollections(db),
-    listSkills(db, { sort: 'popular', pageSize: 100 }),
+    listDiverseSkills(db, { sort: 'popular' }, 14),
   ]);
   // Distinct source repositories of the most popular skills, for the "Indexed from" strip.
-  const sources = [
-    ...new Map(
-      popular.items.map((skill) => [`${skill.owner}/${skill.repo}`.toLowerCase(), skill]),
-    ).values(),
-  ].slice(0, 14);
+  const sources = popular.items;
   const withSkills = categories.filter((c) => c.skillCount > 0);
   const featured = withSkills.slice(0, 8);
   const featuredCount = withSkills.length;
@@ -55,7 +49,7 @@ export default async function HomePage() {
 
         <div>
           <p className="reveal mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-bg/70 px-3 py-1 text-[12px] text-text-muted">
-            <span className="inline-block size-1.5 rounded-full bg-verified-fg" />
+            <span className="inline-block size-1.5 rounded-full bg-accent" />
             Open source · self-hostable · security reports for every assessed version
           </p>
           <h1
@@ -163,7 +157,7 @@ export default async function HomePage() {
               </div>
               <div>
                 <dt className="text-[12px] text-text-muted">Verified now</dt>
-                <dd className="font-mono text-[22px] font-semibold leading-7 text-verified-fg">
+                <dd className="font-mono text-[22px] font-semibold leading-7 text-accent">
                   {verified.total.toLocaleString('en')}
                 </dd>
               </div>
@@ -200,7 +194,7 @@ export default async function HomePage() {
                       {skill.owner}/{skill.repo}
                     </span>
                     <span className="inline-flex items-center gap-0.5 text-[12px] text-text-muted">
-                      <StarIcon size={11} className="text-warning-fg" />
+                      <StarIcon size={11} className="text-accent" />
                       {formatCount(skill.stars)}
                     </span>
                   </li>

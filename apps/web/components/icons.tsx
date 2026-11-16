@@ -185,7 +185,7 @@ export function LogoMark({ size = 28, className }: IconProps) {
       <defs>
         <linearGradient id="sx-logo-g" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="var(--accent)" />
-          <stop offset="1" stopColor="color-mix(in oklab, var(--accent) 55%, var(--verified-fg))" />
+          <stop offset="1" stopColor="color-mix(in oklab, var(--accent) 70%, var(--text))" />
         </linearGradient>
       </defs>
       <rect x="1" y="1" width="30" height="30" rx="8.5" fill="url(#sx-logo-g)" />
