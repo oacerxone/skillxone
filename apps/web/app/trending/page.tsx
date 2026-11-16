@@ -17,6 +17,7 @@ export default async function TrendingPage({
 
   return (
     <SkillListingPage
+      icon="flame"
       title={enoughHistory ? 'Trending skills' : 'Recently active skills'}
       intro="Trending is calculated from star growth this site has recorded itself. No history is estimated or back-filled."
       query={{ sort: enoughHistory ? 'trending' : 'updated' }}

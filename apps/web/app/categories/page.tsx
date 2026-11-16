@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { listCategories } from '@skillxone/database';
+import { CategoryTile, categoryArt } from '@/components/art';
 import { PageHeader } from '@/components/page-parts';
 import { getDatabase } from '@/lib/db';
 
@@ -12,22 +13,30 @@ export default async function CategoriesPage() {
 
   return (
     <>
-      <PageHeader title="Categories">Browse skills by what they help with.</PageHeader>
+      <PageHeader title="Categories" icon="grid">
+        Browse skills by what they help with.
+      </PageHeader>
       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {categories.map((category) => (
           <li key={category.slug}>
             <Link
               href={`/categories/${category.slug}`}
-              className="panel flex h-full flex-col gap-1 p-3 hover:bg-bg-subtle"
+              className="panel card-lift category-card reveal-scroll flex h-full gap-4 p-5"
+              style={{ '--a1': `var(--${categoryArt(category.slug).art})` } as React.CSSProperties}
             >
-              <span className="flex items-baseline justify-between gap-2">
-                <span className="font-medium">{category.name}</span>
-                <span className="font-mono text-[12px] text-text-muted">
-                  {category.skillCount}
-                  <span className="sr-only"> skills</span>
+              <CategoryTile slug={category.slug} size={44} />
+              <span className="flex min-w-0 flex-1 flex-col gap-1">
+                <span className="flex items-baseline justify-between gap-2">
+                  <span className="font-medium">{category.name}</span>
+                  <span className="rounded-full bg-bg-muted px-2 font-mono text-[12px] text-text-muted">
+                    {category.skillCount}
+                    <span className="sr-only"> skills</span>
+                  </span>
+                </span>
+                <span className="text-[13px] leading-5 text-text-muted">
+                  {category.description}
                 </span>
               </span>
-              <span className="text-[13px] leading-5 text-text-muted">{category.description}</span>
             </Link>
           </li>
         ))}

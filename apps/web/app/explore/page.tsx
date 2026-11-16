@@ -34,7 +34,7 @@ export default async function ExplorePage({
 
   return (
     <>
-      <PageHeader title="Explore skills">
+      <PageHeader title="Explore skills" icon="compass">
         Search every indexed skill by name, description, repository or instructions, then narrow the
         results.
       </PageHeader>

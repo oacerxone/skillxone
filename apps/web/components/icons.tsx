@@ -211,3 +211,64 @@ export function LogoMark({ size = 28, className }: IconProps) {
     </svg>
   );
 }
+
+export const FlaskIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <path d="M9.5 3.5h5M10 3.5v5.2L4.8 18a1.8 1.8 0 0 0 1.6 2.6h11.2a1.8 1.8 0 0 0 1.6-2.6L14 8.7V3.5" />
+    <path d="M7.4 14.5h9.2" />
+  </Stroke>
+);
+export const ServerIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <rect x="3.5" y="4" width="17" height="6.5" rx="2" />
+    <rect x="3.5" y="13.5" width="17" height="6.5" rx="2" />
+    <path d="M7.5 7.25h.01M7.5 16.75h.01M11 7.25h5.5M11 16.75h5.5" />
+  </Stroke>
+);
+export const DatabaseIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <ellipse cx="12" cy="5.5" rx="7.5" ry="2.5" />
+    <path d="M4.5 5.5v13c0 1.4 3.4 2.5 7.5 2.5s7.5-1.1 7.5-2.5v-13M4.5 12c0 1.4 3.4 2.5 7.5 2.5s7.5-1.1 7.5-2.5" />
+  </Stroke>
+);
+export const PaletteIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <path d="M12 3.5a8.5 8.5 0 0 0 0 17c1.2 0 1.8-.9 1.8-1.8 0-1.3-1.1-1.6-1.1-2.7 0-.9.7-1.5 1.6-1.5h2.2a4 4 0 0 0 4-4C20.5 6.6 16.7 3.5 12 3.5Z" />
+    <path d="M7.5 11.5h.01M9.5 7.5h.01M14.5 7.5h.01" />
+  </Stroke>
+);
+export const FileTextIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <path d="M14 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.5l-5-5Z" />
+    <path d="M14 3.5v5h5M8.5 13h7M8.5 16.5h5" />
+  </Stroke>
+);
+export const ListChecksIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <path d="m3.5 6.5 1.5 1.5 3-3M3.5 13.5 5 15l3-3M11.5 7h9M11.5 14h9M11.5 19.5h9" />
+  </Stroke>
+);
+export const TelescopeIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <path d="m3.5 12.5 13-6.5 2 4-13 6.5-2-4Z" />
+    <path d="m16.5 6 3-1.5 2 4-3 1.5M10 14.5l-2.5 6M12 13.5l2.5 7" />
+  </Stroke>
+);
+export const BotIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <rect x="4" y="8" width="16" height="11.5" rx="3" />
+    <path d="M12 4v4M9 13h.01M15 13h.01M9.5 16.5h5M2 13v2M22 13v2" />
+  </Stroke>
+);
+export const PackageIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <path d="m12 3 8.5 4.5v9L12 21l-8.5-4.5v-9L12 3Z" />
+    <path d="m3.5 7.5 8.5 4.5 8.5-4.5M12 12v9M7.8 5.2l8.5 4.6" />
+  </Stroke>
+);
+export const UsersIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <circle cx="9" cy="8" r="3.5" />
+    <path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M16 4.7a3.5 3.5 0 0 1 0 6.6M18 14.3c2.1.7 3.5 2.8 3.5 5.7" />
+  </Stroke>
+);

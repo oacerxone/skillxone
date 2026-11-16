@@ -5,11 +5,13 @@ import {
   listSkills,
   metricsHistoryDays,
 } from '@skillxone/database';
+import { Avatar, CategoryTile, categoryArt } from '@/components/art';
 import { HeroIllustration } from '@/components/hero-illustration';
-import { ArrowRightIcon } from '@/components/icons';
+import { ArrowRightIcon, StarIcon } from '@/components/icons';
 import { Section } from '@/components/page-parts';
 import { EmptyState, SkillList } from '@/components/skill-list';
 import { getDatabase } from '@/lib/db';
+import { formatCount } from '@/lib/format';
 import { AGENT_IDS, AGENT_INFO } from '@/lib/install';
 import { REPOSITORY_URL } from '@/lib/navigation';
 import { MIN_TREND_HISTORY_DAYS } from '@/lib/trending';
@@ -20,13 +22,20 @@ export default async function HomePage() {
   // Trending is computed from star history this instance has recorded itself. Until a week
   // exists, the section is ordered by recent activity and labelled as such.
   const trendingReady = (await metricsHistoryDays(db)) >= MIN_TREND_HISTORY_DAYS;
-  const [active, verified, updated, categories, collections] = await Promise.all([
+  const [active, verified, updated, categories, collections, popular] = await Promise.all([
     listSkills(db, { sort: trendingReady ? 'trending' : 'updated', pageSize: 8 }),
     listSkills(db, { verification: 'VERIFIED', sort: 'recommended', pageSize: 6 }),
     listSkills(db, { sort: 'newest', pageSize: 6 }),
     listCategories(db),
     listCollections(db),
+    listSkills(db, { sort: 'popular', pageSize: 100 }),
   ]);
+  // Distinct source repositories of the most popular skills, for the "Indexed from" strip.
+  const sources = [
+    ...new Map(
+      popular.items.map((skill) => [`${skill.owner}/${skill.repo}`.toLowerCase(), skill]),
+    ).values(),
+  ].slice(0, 14);
   const withSkills = categories.filter((c) => c.skillCount > 0);
   const featured = withSkills.slice(0, 8);
   const featuredCount = withSkills.length;
@@ -173,6 +182,35 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {sources.length >= 4 && (
+        <section aria-labelledby="sources-heading" className="mt-4">
+          <h2
+            id="sources-heading"
+            className="mb-3 text-center text-[12px] font-medium uppercase tracking-[0.1em] text-text-subtle"
+          >
+            Indexed from open-source repositories
+          </h2>
+          <div className="marquee">
+            {[0, 1].map((copy) => (
+              <ul key={copy} className="marquee-track" aria-hidden={copy === 1 ? true : undefined}>
+                {sources.map((skill) => (
+                  <li key={`${skill.owner}/${skill.repo}`} className="marquee-item">
+                    <Avatar name={skill.owner} size={22} />
+                    <span className="font-mono text-[12.5px]">
+                      {skill.owner}/{skill.repo}
+                    </span>
+                    <span className="inline-flex items-center gap-0.5 text-[12px] text-text-muted">
+                      <StarIcon size={11} className="text-warning-fg" />
+                      {formatCount(skill.stars)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ))}
+          </div>
+        </section>
+      )}
+
       <section aria-labelledby="how-heading" className="mt-6">
         <h2 id="how-heading" className="sr-only">
           How it works
@@ -217,13 +255,14 @@ export default async function HomePage() {
               <li key={category.slug}>
                 <Link
                   href={`/categories/${category.slug}`}
-                  className="panel card-lift reveal-scroll flex h-full flex-col gap-2 p-4"
+                  className="panel card-lift category-card reveal-scroll flex h-full flex-col gap-2 p-4"
+                  style={
+                    { '--a1': `var(--${categoryArt(category.slug).art})` } as React.CSSProperties
+                  }
                 >
                   <span className="flex items-center justify-between gap-2">
                     <span className="flex items-center gap-2.5">
-                      <span className="icon-tile size-8 text-[13px] font-semibold uppercase">
-                        <span aria-hidden="true">{category.name.slice(0, 1)}</span>
-                      </span>
+                      <CategoryTile slug={category.slug} size={36} />
                       <span className="font-medium">{category.name}</span>
                     </span>
                     <span className="font-mono text-[12px] text-text-muted">

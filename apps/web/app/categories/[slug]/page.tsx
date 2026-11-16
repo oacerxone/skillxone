@@ -29,6 +29,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   return (
     <SkillListingPage
       title={category.name}
+      category={category.slug}
       intro={category.description}
       query={{ category: category.slug, sort: 'recommended' }}
       basePath={`/categories/${category.slug}`}

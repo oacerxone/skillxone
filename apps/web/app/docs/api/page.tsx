@@ -38,7 +38,7 @@ const ENDPOINTS = [
 export default function ApiDocsPage() {
   return (
     <>
-      <PageHeader title="REST API">
+      <PageHeader title="REST API" icon="code">
         A versioned, read-only JSON API. No key is needed. Requests are rate limited (120 per minute
         by default) and report the limit in <code>X-RateLimit-*</code> headers. Errors use one
         shape: <code>{'{"error":{"code":"…","message":"…"}}'}</code>. Rows marked Planned do not

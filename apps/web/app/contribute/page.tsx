@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: 'Contribute' };
 export default function ContributePage() {
   return (
     <>
-      <PageHeader title="Contribute">
+      <PageHeader title="Contribute" icon="heart">
         The marketplace is open source under Apache-2.0 and built to be extended.
       </PageHeader>
       <div className="prose-skill">

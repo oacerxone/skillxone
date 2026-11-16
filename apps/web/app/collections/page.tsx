@@ -13,7 +13,9 @@ export default async function CollectionsPage() {
 
   return (
     <>
-      <PageHeader title="Collections">Curated sets of skills that work well together.</PageHeader>
+      <PageHeader title="Collections" icon="layers">
+        Curated sets of skills that work well together.
+      </PageHeader>
       {collections.length === 0 ? (
         <EmptyState title="No collections published yet" />
       ) : (

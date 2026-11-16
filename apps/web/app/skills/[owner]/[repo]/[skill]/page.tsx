@@ -8,6 +8,7 @@ import { InstallPanel } from '@/components/install-panel';
 import { MarkdownView } from '@/components/markdown-view';
 import { Section } from '@/components/page-parts';
 import { SkillList, skillHref } from '@/components/skill-list';
+import { Avatar } from '@/components/art';
 import { VerificationBadge } from '@/components/verification-badge';
 import { getDatabase } from '@/lib/db';
 import { formatBytes, formatCount, formatDate, relativeTime } from '@/lib/format';
@@ -298,25 +299,32 @@ export default async function SkillPage({ params, searchParams }: Props) {
 
   return (
     <>
-      <header className="pb-5 pt-8">
-        <p className="font-mono text-[13px] text-text-muted">
-          <a href={urls.repo} className="hover:underline" rel="noopener noreferrer">
-            {skill.owner}/{skill.repo}
-          </a>
-          {skill.path && <span> / {skill.path}</span>}
-        </p>
-        <div className="mt-1 flex flex-wrap items-center gap-3">
-          <h1 className="text-[28px] font-semibold leading-[34px] tracking-[-0.015em]">
-            {skill.name}
-          </h1>
-          <VerificationBadge state={skill.verificationState} href={`${base}?tab=security`} />
-          {skill.repositoryArchived && (
-            <span className="rounded-sm bg-warning-bg px-1.5 py-0.5 text-[12px] font-medium leading-4 text-warning-fg">
-              Repository archived
-            </span>
-          )}
+      <header className="page-banner flex items-start gap-4 pb-6 pt-8">
+        <span className="reveal mt-1 hidden sm:block">
+          <Avatar name={skill.owner} size={56} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="font-mono text-[13px] text-text-muted">
+            <a href={urls.repo} className="hover:underline" rel="noopener noreferrer">
+              {skill.owner}/{skill.repo}
+            </a>
+            {skill.path && <span> / {skill.path}</span>}
+          </p>
+          <div className="mt-1 flex flex-wrap items-center gap-3">
+            <h1 className="text-[28px] font-semibold leading-[34px] tracking-[-0.015em]">
+              {skill.name}
+            </h1>
+            <VerificationBadge state={skill.verificationState} href={`${base}?tab=security`} />
+            {skill.repositoryArchived && (
+              <span className="rounded-sm bg-warning-bg px-1.5 py-0.5 text-[12px] font-medium leading-4 text-warning-fg">
+                Repository archived
+              </span>
+            )}
+          </div>
+          <p className="mt-2 max-w-2xl text-[15px] leading-6 text-text-muted">
+            {skill.description}
+          </p>
         </div>
-        <p className="mt-2 max-w-2xl text-[15px] leading-6 text-text-muted">{skill.description}</p>
       </header>
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">

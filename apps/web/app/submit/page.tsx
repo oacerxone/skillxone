@@ -11,7 +11,7 @@ export default async function SubmitPage() {
   const session = await currentSession();
   return (
     <>
-      <PageHeader title="Submit a skill repository">
+      <PageHeader title="Submit a skill repository" icon="upload">
         Suggest a public GitHub repository that contains one or more <code>SKILL.md</code> files.
         Every skill found in it is indexed separately.
       </PageHeader>

@@ -26,7 +26,9 @@ export default async function CollectionPage({ params }: Props) {
 
   return (
     <>
-      <PageHeader title={collection.title}>{collection.description}</PageHeader>
+      <PageHeader title={collection.title} icon="layers">
+        {collection.description}
+      </PageHeader>
       {collection.skills.length === 0 ? (
         <EmptyState title="This collection is empty" />
       ) : (

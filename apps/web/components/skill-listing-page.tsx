@@ -1,6 +1,7 @@
 import { listSkills } from '@skillxone/database';
 import type { SkillQuery } from '@skillxone/database';
 import { getDatabase } from '@/lib/db';
+import type { NavIcon as NavIconName } from '@/lib/navigation';
 import { PageHeader, Pagination } from './page-parts';
 import { EmptyState, SkillList } from './skill-list';
 
@@ -15,6 +16,8 @@ export async function SkillListingPage({
   rawPage,
   emptyTitle,
   children,
+  icon,
+  category,
 }: {
   title: string;
   intro: React.ReactNode;
@@ -23,6 +26,8 @@ export async function SkillListingPage({
   rawPage: string | string[] | undefined;
   emptyTitle: string;
   children?: React.ReactNode;
+  icon?: NavIconName;
+  category?: string;
 }) {
   const parsed = Number.parseInt((Array.isArray(rawPage) ? rawPage[0] : rawPage) ?? '1', 10);
   const page = Number.isInteger(parsed) && parsed >= 1 && parsed <= 100_000 ? parsed : 1;
@@ -31,7 +36,9 @@ export async function SkillListingPage({
 
   return (
     <>
-      <PageHeader title={title}>{intro}</PageHeader>
+      <PageHeader title={title} icon={icon} category={category}>
+        {intro}
+      </PageHeader>
       {children}
       <p className="mb-3 text-[13px] text-text-muted">
         {result.total} skill{result.total === 1 ? '' : 's'}

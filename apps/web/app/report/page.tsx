@@ -41,7 +41,7 @@ export default async function ReportPage({
 
   return (
     <>
-      <PageHeader title="Report a problem">
+      <PageHeader title="Report a problem" icon="flag">
         Tell the maintainers about a security concern, a finding you believe is wrong, or inaccurate
         information.
       </PageHeader>

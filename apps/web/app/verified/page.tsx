@@ -11,6 +11,7 @@ export default async function VerifiedPage({
 }) {
   return (
     <SkillListingPage
+      icon="shield"
       title="Verified skills"
       intro={
         <>

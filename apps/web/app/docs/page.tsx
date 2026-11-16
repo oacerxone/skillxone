@@ -33,7 +33,7 @@ const DOCS = [
 export default function DocsPage() {
   return (
     <>
-      <PageHeader title="Documentation">
+      <PageHeader title="Documentation" icon="book">
         Guides live in the repository so they are versioned with the code.
       </PageHeader>
 

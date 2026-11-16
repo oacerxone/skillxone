@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { SkillListItem } from '@skillxone/database';
 import { formatCount, formatDate, highlightSegments, relativeTime } from '@/lib/format';
 import { agentLabel } from '@/lib/install';
+import { Avatar, EmptyIllustration } from './art';
 import { VerificationBadge } from './verification-badge';
 
 export function skillHref(slug: string): string {
@@ -90,17 +91,24 @@ export function SkillList({ skills, terms = [], now = new Date() }: ListProps) {
               className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-border px-3 py-3 transition-colors duration-150 last:border-b-0 hover:bg-bg-subtle lg:table-row lg:p-0"
             >
               <th scope="row" className="w-full font-normal lg:w-auto lg:px-3 lg:py-2.5">
-                <Link
-                  href={skillHref(skill.slug)}
-                  className="font-medium text-text hover:underline"
-                >
-                  <Highlight text={skill.name} terms={terms} />
-                </Link>
-                <span className="ml-2 font-mono text-[12px] text-text-subtle">
-                  <Highlight text={`${skill.owner}/${skill.repo}`} terms={terms} />
-                </span>
-                <span className="block max-w-[60ch] text-text-muted lg:truncate">
-                  <Highlight text={skill.description} terms={terms} />
+                <span className="flex items-start gap-3">
+                  <span className="mt-0.5">
+                    <Avatar name={skill.owner} size={30} />
+                  </span>
+                  <span className="min-w-0">
+                    <Link
+                      href={skillHref(skill.slug)}
+                      className="font-medium text-text hover:underline"
+                    >
+                      <Highlight text={skill.name} terms={terms} />
+                    </Link>
+                    <span className="ml-2 font-mono text-[12px] text-text-subtle">
+                      <Highlight text={`${skill.owner}/${skill.repo}`} terms={terms} />
+                    </span>
+                    <span className="block max-w-[60ch] text-text-muted lg:truncate">
+                      <Highlight text={skill.description} terms={terms} />
+                    </span>
+                  </span>
                 </span>
               </th>
               <td className="text-text-muted lg:px-3 lg:py-2.5">
@@ -144,9 +152,12 @@ export function SkillCards({ skills, terms = [], now = new Date() }: ListProps) 
       {skills.map((skill) => (
         <li key={skill.id} className="panel card-lift flex flex-col gap-2 p-4">
           <div className="flex items-start justify-between gap-2">
-            <Link href={skillHref(skill.slug)} className="font-medium hover:underline">
-              <Highlight text={skill.name} terms={terms} />
-            </Link>
+            <span className="flex min-w-0 items-center gap-2.5">
+              <Avatar name={skill.owner} size={32} />
+              <Link href={skillHref(skill.slug)} className="font-medium hover:underline">
+                <Highlight text={skill.name} terms={terms} />
+              </Link>
+            </span>
             <VerificationBadge
               state={skill.verificationState}
               href={`${skillHref(skill.slug)}?tab=security`}
@@ -174,7 +185,8 @@ export function SkillCards({ skills, terms = [], now = new Date() }: ListProps) 
 export function EmptyState({ title, children }: { title: string; children?: React.ReactNode }) {
   return (
     <div className="panel px-4 py-10 text-center">
-      <p className="font-medium">{title}</p>
+      <EmptyIllustration />
+      <p className="mt-4 font-medium">{title}</p>
       {children && <div className="mt-1 text-[13px] text-text-muted">{children}</div>}
     </div>
   );

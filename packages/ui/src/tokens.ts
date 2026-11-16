@@ -27,6 +27,16 @@ export const colorTokens = {
     'flagged-bg': '#fdecea',
     'warning-fg': '#8a5a00',
     'warning-bg': '#fdf3dc',
+    // Decorative art palette: category tiles, generated avatars, illustrations. Never used
+    // for text, so it has no contrast pairs; meaning is always carried by text or icons too.
+    'art-1': '#6366f1',
+    'art-2': '#14b8a6',
+    'art-3': '#f59e0b',
+    'art-4': '#f43f5e',
+    'art-5': '#a855f7',
+    'art-6': '#0ea5e9',
+    'art-7': '#10b981',
+    'art-8': '#f97316',
   },
   dark: {
     bg: '#0b0c0e',
@@ -48,6 +58,14 @@ export const colorTokens = {
     'flagged-bg': '#2a1412',
     'warning-fg': '#f0be5a',
     'warning-bg': '#261d0a',
+    'art-1': '#818cf8',
+    'art-2': '#2dd4bf',
+    'art-3': '#fbbf24',
+    'art-4': '#fb7185',
+    'art-5': '#c084fc',
+    'art-6': '#38bdf8',
+    'art-7': '#34d399',
+    'art-8': '#fb923c',
   },
 } as const;
 

@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: 'About' };
 export default function AboutPage() {
   return (
     <>
-      <PageHeader title="About">
+      <PageHeader title="About" icon="info">
         An open-source, self-hostable index of AI agent skills hosted on GitHub.
       </PageHeader>
       <div className="prose-skill">
