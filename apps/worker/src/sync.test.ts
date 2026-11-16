@@ -11,8 +11,9 @@ import {
 import type { DatabaseHandle } from '@skillxone/database';
 import { GitHubClient, RateLimitError } from '@skillxone/github';
 import type { FetchLike } from '@skillxone/github';
+import { createSearchBackend } from '@skillxone/search';
 import { computeContentHash } from '@skillxone/skill-parser';
-import { createProcessors, runDiscovery } from './processors';
+import { createProcessors, runDiscovery, runRanking } from './processors';
 import { drainQueue } from './runner';
 import { syncRepository } from './sync';
 import type { SyncDeps } from './sync';
@@ -604,8 +605,15 @@ describe('discovery and the queue', () => {
     github.repos.push(repo());
     await deps.queue.enqueue('discover', { provider: 'seed' });
     const summary = await drainQueue(deps.queue, createProcessors(deps, seeds), { workerId: 'w' });
-    expect(summary).toMatchObject({ succeeded: 2, dead: 0, retried: 0 });
+    // discover -> sync_repo -> index_repo + rank
+    expect(summary).toMatchObject({ succeeded: 4, dead: 0, retried: 0 });
     expect((await listSkills(handle.db)).total).toBe(2);
+    // The new skills are searchable and ranked without any further step.
+    const search = createSearchBackend(handle);
+    expect(await search.health()).toMatchObject({ ok: true, indexed: 2 });
+    expect(await search.search('alpha')).toHaveLength(1);
+    const ranked = await listSkills(handle.db);
+    expect(ranked.items.every((s) => s.quality !== null && s.quality > 0)).toBe(true);
     // scan jobs wait for a worker that knows how to run them
     expect(await queuedScans()).toBe(2);
   });
@@ -639,5 +647,59 @@ describe('discovery and the queue', () => {
     const summary = await drainQueue(deps.queue, createProcessors(deps, seeds), { workerId: 'w' });
     expect(summary.dead).toBe(1);
     expect(github.apiCalls).toHaveLength(0);
+  });
+});
+
+describe('ranking job', () => {
+  const day = (n: number) => new Date(Date.UTC(2026, 5, 1 + n));
+
+  it('scores every skill and explains the score', async () => {
+    github.repos.push(repo());
+    await syncRepository(deps, TARGET);
+    const summary = await runRanking(handle.db, now);
+    expect(summary).toEqual({ skills: 2, maxHistoryDays: 1 });
+
+    const alpha = await getSkillBySlug(handle.db, 'octo/skills/alpha');
+    expect(alpha!.quality).toBeGreaterThan(0);
+    expect(alpha!.quality).toBeLessThanOrEqual(1);
+    expect(Object.keys(alpha!.ranking!.signals)).toContain('popularity');
+    expect(alpha!.ranking!.signals.growth!.explanation).toContain('Not enough recorded history');
+  });
+
+  it('produces trend scores only once seven days of real snapshots exist', async () => {
+    github.repos.push(repo());
+    for (let n = 0; n <= 8; n += 1) {
+      now = day(n);
+      github.repos[0]!.stars = 100 + n * 25; // the fake repository gains stars each day
+      await syncRepository(deps, TARGET);
+      await runRanking(handle.db, now);
+      const row = await handle.db
+        .selectFrom('ranking_scores')
+        .select(['trending_score', 'history_days'])
+        .executeTakeFirstOrThrow();
+      if (n < 7) expect(row.trending_score, `day ${n}`).toBe(0);
+      else expect(row.trending_score, `day ${n}`).toBeGreaterThan(0);
+      expect(row.history_days).toBe(n + 1);
+    }
+    const trending = await listSkills(handle.db, { sort: 'trending' });
+    expect(trending.items).toHaveLength(2);
+  });
+
+  it('sorts a flagged skill last under the recommended order', async () => {
+    github.repos.push(repo());
+    await syncRepository(deps, TARGET);
+    await handle.db
+      .updateTable('skills')
+      .set({ verification_state: 'FLAGGED' })
+      .where('name', '=', 'alpha')
+      .execute();
+    await handle.db
+      .updateTable('skills')
+      .set({ verification_state: 'VERIFIED' })
+      .where('name', '=', 'beta')
+      .execute();
+    await runRanking(handle.db, now);
+    const result = await listSkills(handle.db, { sort: 'recommended' });
+    expect(result.items.map((s) => s.name)).toEqual(['beta', 'alpha']);
   });
 });

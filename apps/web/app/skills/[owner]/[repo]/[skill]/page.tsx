@@ -238,6 +238,17 @@ export default async function SkillPage({ params, searchParams }: Props) {
 
   const markdown = skill.skillMarkdown ? stripFrontmatter(skill.skillMarkdown) : null;
 
+  // The three signals that contribute most to the stored quality score.
+  const ranking = Object.entries(skill.ranking?.signals ?? {})
+    .map(([id, signal]) => ({
+      id,
+      weight: signal.value * signal.weight,
+      explanation: signal.explanation,
+    }))
+    .filter((entry) => entry.weight > 0 && entry.explanation)
+    .sort((a, b) => b.weight - a.weight)
+    .slice(0, 3);
+
   return (
     <>
       <header className="pb-5 pt-8">
@@ -330,6 +341,32 @@ export default async function SkillPage({ params, searchParams }: Props) {
               ))}
             </ul>
           </section>
+
+          {ranking.length > 0 && (
+            <section aria-labelledby="ranking-heading" className="panel p-4">
+              <h2 id="ranking-heading" className="text-[16px] font-semibold leading-6">
+                Why it ranks where it does
+              </h2>
+              <p className="mt-1 text-[12px] leading-4 text-text-muted">
+                The strongest factors in its position. This describes quality signals, not safety.
+              </p>
+              <ul className="mt-2 flex list-disc flex-col gap-1 pl-5 text-[13px] leading-5">
+                {ranking.map((entry) => (
+                  <li key={entry.id}>{entry.explanation}</li>
+                ))}
+                {skill.ranking?.adjustments.map((adjustment) => (
+                  <li key={adjustment} className="text-flagged-fg">
+                    {adjustment}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-[13px]">
+                <Link href="/docs#ranking" className="link">
+                  How ranking works
+                </Link>
+              </p>
+            </section>
+          )}
 
           <p className="text-[13px]">
             <Link href={`/report?skill=${encodeURIComponent(skill.slug)}`} className="link">

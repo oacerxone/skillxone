@@ -38,4 +38,6 @@ function worker(...args) {
 
 worker('migrate');
 worker('seed', '--dev');
+worker('reindex');
+worker('rank');
 console.log('Ready. Start the site with `pnpm dev`.');

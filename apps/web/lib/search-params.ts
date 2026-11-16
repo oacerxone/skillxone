@@ -15,7 +15,8 @@ export interface ExploreFilters {
   agent: string;
   verification: VerificationState | '';
   category: string;
-  sort: SkillSort;
+  /** Empty means the default: best match when searching, recommended otherwise. */
+  sort: SkillSort | '';
   view: 'list' | 'cards';
   page: number;
 }
@@ -25,7 +26,7 @@ export const DEFAULT_FILTERS: ExploreFilters = {
   agent: '',
   verification: '',
   category: '',
-  sort: 'popular',
+  sort: '',
   view: 'list',
   page: 1,
 };
@@ -51,7 +52,7 @@ export function parseExploreParams(raw: RawParams): ExploreFilters {
       ? (verification as VerificationState)
       : '',
     category: SLUG.test(category) ? category : '',
-    sort: (SKILL_SORTS as readonly string[]).includes(sort) ? (sort as SkillSort) : 'popular',
+    sort: (SKILL_SORTS as readonly string[]).includes(sort) ? (sort as SkillSort) : '',
     view: first(raw.view) === 'cards' ? 'cards' : 'list',
     page: Number.isInteger(page) && page >= 1 && page <= 100_000 ? page : 1,
   };
@@ -68,7 +69,7 @@ export function buildExploreQuery(
   if (merged.agent) params.set('agent', merged.agent);
   if (merged.verification) params.set('verification', merged.verification.toLowerCase());
   if (merged.category) params.set('category', merged.category);
-  if (merged.sort !== DEFAULT_FILTERS.sort) params.set('sort', merged.sort);
+  if (merged.sort) params.set('sort', merged.sort);
   if (merged.view !== DEFAULT_FILTERS.view) params.set('view', merged.view);
   if (merged.page > 1) params.set('page', String(merged.page));
   const text = params.toString();
@@ -81,7 +82,7 @@ export function toSkillQuery(filters: ExploreFilters, pageSize: number): SkillQu
     agent: filters.agent || undefined,
     verification: filters.verification || undefined,
     category: filters.category || undefined,
-    sort: filters.sort,
+    sort: filters.sort || undefined,
     page: filters.page,
     pageSize,
   };

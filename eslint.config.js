@@ -13,6 +13,8 @@ const allowedInternalImports = {
   ui: ['shared'],
   'skill-parser': ['shared'],
   github: ['shared'],
+  ranking: ['shared'],
+  search: ['shared', 'database'],
 };
 
 const boundaryConfigs = Object.entries(allowedInternalImports).map(([pkg, allowed]) => ({

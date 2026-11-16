@@ -83,6 +83,22 @@ export default function DocsPage() {
           numeric safety score. Static analysis has false positives and false negatives; a label is
           evidence, not a certificate.
         </p>
+        <h2 id="ranking">Ranking in brief</h2>
+        <p>
+          Search relevance and quality are separate. Quality is a weighted mix of popularity
+          (logarithmic, at most 18% of the score), recent star growth, maintenance, content
+          freshness, documentation, metadata quality, security status and confirmed compatibility.
+        </p>
+        <ul>
+          <li>
+            A flagged skill&apos;s score is cut to a quarter and it never appears in Trending.
+          </li>
+          <li>
+            Trend figures come only from star counts this site has recorded itself; nothing is
+            estimated or back-filled.
+          </li>
+          <li>Each skill page lists the factors that count most for its position.</li>
+        </ul>
       </div>
     </>
   );

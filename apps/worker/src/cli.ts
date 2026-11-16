@@ -14,7 +14,14 @@ import type { DatabaseHandle } from '@skillxone/database';
 import { EnvError, loadRootEnvFile, parseEnv } from '@skillxone/shared';
 import type { Env } from '@skillxone/shared';
 import { GitHubClient, parseRepoRef } from '@skillxone/github';
-import { DISCOVERY_PROVIDERS, createProcessors, loadSeedFile, runDiscovery } from './processors';
+import { createSearchBackend } from '@skillxone/search';
+import {
+  DISCOVERY_PROVIDERS,
+  createProcessors,
+  loadSeedFile,
+  runDiscovery,
+  runRanking,
+} from './processors';
 import type { DiscoveryProviderId } from './processors';
 import { drainQueue } from './runner';
 import { syncRepository } from './sync';
@@ -32,6 +39,9 @@ Commands:
   discover [--provider p] Queue sync jobs for candidate repositories
                           (seed | repo-search | code-search | collection | recrawl; default seed)
   sync <owner/repo>       Index one repository now and print the result
+  rank                    Recompute quality and trend scores for every skill
+  reindex                 Rebuild the search index (also repairs a damaged one)
+  search-health           Check the search index
   enqueue <type>          Add a job  [--payload <json>] [--dedupe <key>] [--priority <n>]
   drain                   Run queued jobs until none are runnable, then exit  [--max <n>]
   help                    Show this message
@@ -136,6 +146,27 @@ const commands: Record<string, Command> = {
     printRateLimit(deps);
   },
 
+  async rank(_args, { handle }) {
+    const summary = await runRanking(handle.db, new Date());
+    console.log(
+      `Ranked ${summary.skills} skill(s). Recorded history: ${summary.maxHistoryDays} day(s)` +
+        (summary.maxHistoryDays < 7 ? ' (trend scores stay at zero until there are 7).' : '.'),
+    );
+  },
+
+  async reindex(_args, { handle }) {
+    const backend = createSearchBackend(handle);
+    console.log(`Indexed ${await backend.rebuild()} skill(s) with the ${backend.name} backend.`);
+  },
+
+  async 'search-health'(_args, { handle }) {
+    const health = await createSearchBackend(handle).health();
+    console.log(
+      `${health.ok ? 'OK' : 'PROBLEM'}: ${health.backend}, ${health.indexed} of ${health.expected} indexed. ${health.detail}`,
+    );
+    if (!health.ok) process.exitCode = 1;
+  },
+
   async enqueue(args, { handle }) {
     const { values, positionals } = parseArgs({
       args,
@@ -183,18 +214,22 @@ const commands: Record<string, Command> = {
 
     const workerId = `${hostname()}:${process.pid}:${randomUUID().slice(0, 8)}`;
     const deps = syncDeps(env, handle);
-    const summary = await drainQueue(deps.queue, createProcessors(deps), {
-      workerId,
-      maxJobs,
-      signal: controller.signal,
-      onEvent(event) {
-        if (event.kind === 'succeeded') console.log(`ok     ${event.job.type} ${event.job.id}`);
-        else
-          console.error(
-            `${event.kind.padEnd(6)} ${event.job.type} ${event.job.id}: ${event.error}`,
-          );
+    const summary = await drainQueue(
+      deps.queue,
+      createProcessors({ ...deps, dialect: handle.dialect }),
+      {
+        workerId,
+        maxJobs,
+        signal: controller.signal,
+        onEvent(event) {
+          if (event.kind === 'succeeded') console.log(`ok     ${event.job.type} ${event.job.id}`);
+          else
+            console.error(
+              `${event.kind.padEnd(6)} ${event.job.type} ${event.job.id}: ${event.error}`,
+            );
+        },
       },
-    });
+    );
     console.log(
       `Done: ${summary.succeeded} succeeded, ${summary.retried} to retry, ${summary.deferred} deferred, ${summary.dead} dead, ${summary.lost} lost.`,
     );

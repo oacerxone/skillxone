@@ -30,7 +30,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
     <SkillListingPage
       title={category.name}
       intro={category.description}
-      query={{ category: category.slug, sort: 'popular' }}
+      query={{ category: category.slug, sort: 'recommended' }}
       basePath={`/categories/${category.slug}`}
       rawPage={(await searchParams).page}
       emptyTitle="No skills in this category yet"

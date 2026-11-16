@@ -2,8 +2,8 @@
 
 An open-source, self-hostable marketplace for discovering, evaluating and installing AI agent skills hosted on GitHub. Initial agents: Claude Code and OpenAI Codex.
 
-> **Status: Phase 3 of 10 — GitHub ingestion works.**
-> The site and the indexer both work: `pnpm worker discover` and `pnpm worker drain` index real `SKILL.md` skills from GitHub. Ranked search, the security scanner (every real skill is therefore shown as Unverified), working submissions and deployment packaging are **not built yet**. See the [roadmap](docs/ROADMAP.md).
+> **Status: Phase 4 of 10 — search and ranking work.**
+> Working: the site, GitHub ingestion, ranked full-text search, quality ranking and a read-only REST API. Not built yet: the security scanner (every real skill is therefore shown as Unverified), working submissions, the admin dashboard and deployment packaging. See the [roadmap](docs/ROADMAP.md).
 
 ## What it will do
 
@@ -53,20 +53,23 @@ Other commands:
 | `packages/database`     | Schema, migrations, job queue (SQLite default, PostgreSQL adapter)            |
 | `packages/github`       | GitHub REST client, rate limits, discovery providers                          |
 | `packages/skill-parser` | Finds skills in a file listing, parses and validates `SKILL.md`, content hash |
+| `packages/search`       | Full-text search backends (SQLite FTS5)                                       |
+| `packages/ranking`      | Quality and trend scoring, pure functions                                     |
 | `packages/ui`           | Design tokens                                                                 |
 | `docs/`                 | Architecture, decisions, schema, security policy, design system, roadmap      |
 
 ## Documents
 
-| Document                                                    | Contents                                                                  |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------- |
-| [Architecture overview](docs/architecture/overview.md)      | System shape, stack, module boundaries, ingestion, jobs, deployment modes |
-| [Decision records](docs/architecture/decisions.md)          | ADR-001 to ADR-011                                                        |
-| [Database schema](docs/architecture/database-schema.md)     | Tables, indexes and conventions                                           |
-| [Verification policy](docs/security/verification-policy.md) | What Verified, Unverified and Flagged mean                                |
-| [Design system](docs/architecture/design-system.md)         | Tokens, components, accessibility                                         |
-| [Ingestion guide](docs/development/ingestion.md)            | Indexing real repositories: commands, costs, limits                       |
-| [Roadmap](docs/ROADMAP.md)                                  | Phases with acceptance checks                                             |
+| Document                                                     | Contents                                                                  |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------- |
+| [Architecture overview](docs/architecture/overview.md)       | System shape, stack, module boundaries, ingestion, jobs, deployment modes |
+| [Decision records](docs/architecture/decisions.md)           | ADR-001 to ADR-011                                                        |
+| [Database schema](docs/architecture/database-schema.md)      | Tables, indexes and conventions                                           |
+| [Verification policy](docs/security/verification-policy.md)  | What Verified, Unverified and Flagged mean                                |
+| [Design system](docs/architecture/design-system.md)          | Tokens, components, accessibility                                         |
+| [Ingestion guide](docs/development/ingestion.md)             | Indexing real repositories: commands, costs, limits                       |
+| [Search and ranking](docs/development/search-and-ranking.md) | How results are ordered, operating the index, measured speed              |
+| [Roadmap](docs/ROADMAP.md)                                   | Phases with acceptance checks                                             |
 
 ## Contributing
 

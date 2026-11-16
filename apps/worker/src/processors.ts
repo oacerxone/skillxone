@@ -1,6 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { listRepositoriesToRecrawl } from '@skillxone/database';
+import {
+  listRepositoriesToRecrawl,
+  loadRankingFacts,
+  saveRankingScores,
+} from '@skillxone/database';
+import type { DatabaseHandle } from '@skillxone/database';
 import {
   codeSearchProvider,
   collectionProvider,
@@ -9,6 +14,9 @@ import {
   seedProvider,
 } from '@skillxone/github';
 import type { DiscoveryProvider, RepoCandidate } from '@skillxone/github';
+import { DEFAULT_WEIGHTS, computeRanking } from '@skillxone/ranking';
+import type { RankingWeights } from '@skillxone/ranking';
+import { createSearchBackend } from '@skillxone/search';
 import { findWorkspaceRoot } from '@skillxone/shared';
 import { baseProcessors } from './runner';
 import type { ProcessorRegistry } from './runner';
@@ -99,12 +107,63 @@ export async function runDiscovery(
   return { provider: providerId, candidates: candidates.length, enqueued, notes };
 }
 
+export interface RankSummary {
+  skills: number;
+  /** Most days of recorded history for any repository; trends need at least seven. */
+  maxHistoryDays: number;
+}
+
+/** Recomputes every skill's quality and trend scores from current data. */
+export async function runRanking(
+  db: DatabaseHandle['db'],
+  now: Date,
+  weights: RankingWeights = DEFAULT_WEIGHTS,
+): Promise<RankSummary> {
+  const facts = await loadRankingFacts(db, now);
+  const scores = facts.map((fact) => {
+    const result = computeRanking(fact, weights);
+    return {
+      skillId: fact.skillId,
+      quality: result.quality,
+      trending: result.trending,
+      rising: result.rising,
+      maintenance: result.maintenance,
+      detail: { signals: result.signals, adjustments: result.adjustments },
+      weightsVersion: result.weightsVersion,
+      historyDays: fact.historyDays,
+    };
+  });
+  await saveRankingScores(db, scores, now);
+  return {
+    skills: scores.length,
+    maxHistoryDays: facts.reduce((max, fact) => Math.max(max, fact.historyDays), 0),
+  };
+}
+
 export function createProcessors(
-  deps: SyncDeps,
+  deps: SyncDeps & { dialect?: DatabaseHandle['dialect'] },
   seeds: SeedFile = loadSeedFile(),
 ): ProcessorRegistry {
+  const search = createSearchBackend({ db: deps.db, dialect: deps.dialect ?? 'sqlite' });
   return {
     ...baseProcessors,
+
+    /** Recompute ranking scores for the whole catalog. */
+    rank: () => runRanking(deps.db, deps.now()),
+
+    /** Re-index one repository's skills for search after a sync. */
+    async index_repo(payload) {
+      const repositoryId = (payload as { repositoryId?: unknown }).repositoryId;
+      if (typeof repositoryId !== 'string') {
+        throw new Error('index_repo payload needs a repositoryId');
+      }
+      return { indexed: await search.indexRepository(repositoryId) };
+    },
+
+    /** Drop and rebuild the whole search index. Also the repair for a damaged index. */
+    async reindex() {
+      return { indexed: await search.rebuild() };
+    },
 
     async sync_repo(payload, { job }) {
       const data = payload as { owner?: unknown; repo?: unknown; source?: unknown };

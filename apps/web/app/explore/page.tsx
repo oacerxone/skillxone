@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { listAgentIds, listCategories, listSkills, searchTerms } from '@skillxone/database';
+import { listAgentIds, listCategories, searchTerms } from '@skillxone/database';
 import { ExploreFilters } from '@/components/explore-filters';
 import { PageHeader, Pagination } from '@/components/page-parts';
 import { EmptyState, SkillCards, SkillList } from '@/components/skill-list';
 import { getDatabase } from '@/lib/db';
+import { searchSkills } from '@/lib/search';
 import { buildExploreQuery, parseExploreParams, toSkillQuery } from '@/lib/search-params';
 
 export const metadata: Metadata = { title: 'Explore skills' };
@@ -19,7 +20,7 @@ export default async function ExplorePage({
   const filters = parseExploreParams(await searchParams);
   const { db } = await getDatabase();
   const [result, agents, categories] = await Promise.all([
-    listSkills(db, toSkillQuery(filters, PAGE_SIZE)),
+    searchSkills(toSkillQuery(filters, PAGE_SIZE)),
     listAgentIds(db),
     listCategories(db),
   ]);
@@ -34,8 +35,8 @@ export default async function ExplorePage({
   return (
     <>
       <PageHeader title="Explore skills">
-        Search and filter every indexed skill. Matching is a simple text match for now; ranked
-        search arrives with the search engine.
+        Search every indexed skill by name, description, repository or instructions, then narrow the
+        results.
       </PageHeader>
 
       <ExploreFilters

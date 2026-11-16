@@ -9,6 +9,8 @@
   "dependencies": {
     "@skillxone/database": "workspace:*",
     "@skillxone/github": "workspace:*",
+    "@skillxone/ranking": "workspace:*",
+    "@skillxone/search": "workspace:*",
     "@skillxone/shared": "workspace:*",
     "@skillxone/skill-parser": "workspace:*"
   }

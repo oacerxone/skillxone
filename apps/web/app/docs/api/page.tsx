@@ -5,15 +5,26 @@ export const metadata: Metadata = { title: 'REST API' };
 
 const ENDPOINTS = [
   ['GET', '/api/health', 'Liveness and database check.', 'Available'],
-  ['GET', '/api/v1/skills', 'List skills with filters and pagination.', 'Planned'],
-  ['GET', '/api/v1/skills/:id', 'One skill.', 'Planned'],
-  ['GET', '/api/v1/skills/:id/versions', 'Indexed versions of a skill.', 'Planned'],
-  ['GET', '/api/v1/skills/:id/security', 'Security report for the current version.', 'Planned'],
+  [
+    'GET',
+    '/api/v1/skills',
+    'List skills: q, agent, verification, category, sort, page, per_page.',
+    'Available',
+  ],
+  [
+    'GET',
+    '/api/v1/skills/:id',
+    'One skill with files, compatibility and ranking signals.',
+    'Available',
+  ],
+  ['GET', '/api/v1/skills/:id/versions', 'Indexed versions of a skill.', 'Available'],
+  ['GET', '/api/v1/skills/:id/security', 'Security report for the current version.', 'Available'],
   ['GET', '/api/v1/skills/:id/install', 'Install commands per agent.', 'Planned'],
-  ['GET', '/api/v1/search', 'Ranked search.', 'Planned'],
-  ['GET', '/api/v1/categories', 'Categories with counts.', 'Planned'],
-  ['GET', '/api/v1/trending', 'Trending skills.', 'Planned'],
-  ['GET', '/api/v1/repositories/:id', 'One repository.', 'Planned'],
+  ['GET', '/api/v1/search', 'Ranked search; q is required.', 'Available'],
+  ['GET', '/api/v1/suggest', 'Skill-name completions for a partial query.', 'Available'],
+  ['GET', '/api/v1/categories', 'Categories with counts.', 'Available'],
+  ['GET', '/api/v1/trending', 'Trending skills, with the basis used.', 'Available'],
+  ['GET', '/api/v1/repositories/:id', 'One repository.', 'Available'],
   ['POST', '/api/v1/submissions', 'Suggest a repository.', 'Planned'],
   ['POST', '/api/v1/reports', 'Report a problem.', 'Planned'],
 ] as const;
@@ -22,8 +33,10 @@ export default function ApiDocsPage() {
   return (
     <>
       <PageHeader title="REST API">
-        A versioned public API is planned. Only the health endpoint exists today; the rest of this
-        table is the intended surface, not working functionality.
+        A versioned, read-only JSON API. No key is needed. Requests are rate limited (120 per minute
+        by default) and report the limit in <code>X-RateLimit-*</code> headers. Errors use one
+        shape: <code>{'{"error":{"code":"…","message":"…"}}'}</code>. Rows marked Planned do not
+        exist yet.
       </PageHeader>
       <div
         className="panel max-w-4xl overflow-x-auto"

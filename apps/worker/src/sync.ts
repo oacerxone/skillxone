@@ -483,6 +483,12 @@ export async function syncRepository(
   // 4. Skills that disappeared. Only trusted when the listing was complete.
   if (complete) summary.removed = await markSkillsRemoved(db, repo.id, presentPaths, now);
 
+  // Search and ranking are derived from what was just stored; refresh them in the background.
+  if (summary.created + summary.updated + summary.removed > 0 || repo.renamedFrom) {
+    await queue.enqueue('index_repo', { repositoryId: repo.id }, { dedupeKey: `index:${repo.id}` });
+    await queue.enqueue('rank', {}, { dedupeKey: 'rank' });
+  }
+
   // Remember the commit only after a clean pass, so a partial failure is retried next time.
   if (summary.errors === 0) {
     await setRepositoryHead(db, repo.id, head, now);

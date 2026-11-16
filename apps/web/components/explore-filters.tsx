@@ -24,6 +24,7 @@ export function ExploreFilters({ filters, agents, categories }: Props) {
   const [pending, startTransition] = useTransition();
   const [query, setQuery] = useState(filters.q);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const latest = useRef(filters);
   latest.current = filters;
 
@@ -45,10 +46,31 @@ export function ExploreFilters({ filters, agents, categories }: Props) {
     startTransition(() => router.replace(target, { scroll: false }));
   }
 
+  // Name completions, offered through a native <datalist> so they work with the keyboard
+  // and screen readers without custom listbox code. Failures are ignored: suggestions are
+  // a convenience, never required.
+  async function loadSuggestions(value: string) {
+    if (value.length < 2) return setSuggestions([]);
+    try {
+      const response = await fetch(`/api/v1/suggest?q=${encodeURIComponent(value)}`);
+      if (!response.ok) return;
+      const body = (await response.json()) as { data?: Array<{ name?: unknown }> };
+      const names = (body.data ?? []).flatMap((item) =>
+        typeof item.name === 'string' ? [item.name] : [],
+      );
+      setSuggestions([...new Set(names)]);
+    } catch {
+      /* offline or rate limited */
+    }
+  }
+
   function onQueryChange(value: string) {
     setQuery(value);
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => apply({ q: value.trim() }), DEBOUNCE_MS);
+    timer.current = setTimeout(() => {
+      apply({ q: value.trim() });
+      void loadSuggestions(value.trim());
+    }, DEBOUNCE_MS);
   }
 
   return (
@@ -74,6 +96,7 @@ export function ExploreFilters({ filters, agents, categories }: Props) {
           name="q"
           type="search"
           data-search-input
+          list="explore-suggestions"
           autoComplete="off"
           maxLength={100}
           placeholder="Name, description or repository"
@@ -81,6 +104,11 @@ export function ExploreFilters({ filters, agents, categories }: Props) {
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
         />
+        <datalist id="explore-suggestions">
+          {suggestions.map((name) => (
+            <option key={name} value={name} />
+          ))}
+        </datalist>
       </div>
 
       <div>
@@ -154,7 +182,11 @@ export function ExploreFilters({ filters, agents, categories }: Props) {
           value={filters.sort}
           onChange={(event) => apply({ sort: event.target.value as Filters['sort'] })}
         >
+          <option value="">{filters.q ? 'Best match' : 'Recommended'}</option>
           <option value="popular">Most stars</option>
+          <option value="trending">Trending</option>
+          <option value="rising">Rising</option>
+          <option value="maintained">Best maintained</option>
           <option value="updated">Recently updated</option>
           <option value="newest">Newly added</option>
           <option value="name">Name</option>

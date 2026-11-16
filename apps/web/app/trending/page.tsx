@@ -2,11 +2,9 @@ import type { Metadata } from 'next';
 import { metricsHistoryDays } from '@skillxone/database';
 import { SkillListingPage } from '@/components/skill-listing-page';
 import { getDatabase } from '@/lib/db';
+import { MIN_TREND_HISTORY_DAYS as MIN_HISTORY_DAYS } from '@/lib/trending';
 
 export const metadata: Metadata = { title: 'Trending skills' };
-
-/** Days of recorded star history required before a trend can be computed (ADR-008). */
-const MIN_HISTORY_DAYS = 7;
 
 export default async function TrendingPage({
   searchParams,
@@ -21,7 +19,7 @@ export default async function TrendingPage({
     <SkillListingPage
       title={enoughHistory ? 'Trending skills' : 'Recently active skills'}
       intro="Trending is calculated from star growth this site has recorded itself. No history is estimated or back-filled."
-      query={{ sort: 'updated' }}
+      query={{ sort: enoughHistory ? 'trending' : 'updated' }}
       basePath="/trending"
       rawPage={(await searchParams).page}
       emptyTitle="No skills indexed yet"

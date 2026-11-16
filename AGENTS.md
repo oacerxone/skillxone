@@ -33,12 +33,14 @@ All four of `lint`, `typecheck`, `test` and `build` must pass before a change is
 | `packages/database`     | Kysely schema types, migrations, job queue, seeds.                                                        |
 | `packages/github`       | GitHub client and discovery providers. Validates every owner/repo before it reaches a URL.                |
 | `packages/skill-parser` | Pure functions: locate skills, parse `SKILL.md`, content hash. No I/O.                                    |
+| `packages/search`       | Search backends. The only place with dialect-specific SQL besides the connection code.                    |
+| `packages/ranking`      | Pure scoring functions. No I/O.                                                                           |
 | `packages/ui`           | Design tokens and (later) presentational components.                                                      |
 
 ## Rules that are enforced
 
 - **Package boundaries.** `eslint.config.js` lists which internal packages each package may import. Do not widen a boundary to make an import work; move the code instead.
-- **Portable SQL only.** Text ULID ids, ISO-8601 UTC text timestamps, 0/1 integer booleans, JSON as text. No dialect-specific SQL outside `packages/database` connection code. Never edit a released migration; add a new one.
+- **Portable SQL only.** Text ULID ids, ISO-8601 UTC text timestamps, 0/1 integer booleans, JSON as text. No dialect-specific SQL outside `packages/database` connection code and `packages/search`. Never edit a released migration; add a new one.
 - **Jobs are idempotent.** The queue delivers at least once. A processor must be safe to run twice.
 - **Tokens are the source of colour.** Use token utilities (`bg-bg`, `text-text-muted`), not raw hex values. New text/background pairs go in `contrastPairs` so the contrast test covers them.
 

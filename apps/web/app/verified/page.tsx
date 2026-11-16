@@ -22,7 +22,7 @@ export default async function VerifiedPage({
           that a skill is safe.
         </>
       }
-      query={{ verification: 'VERIFIED', sort: 'popular' }}
+      query={{ verification: 'VERIFIED', sort: 'recommended' }}
       basePath="/verified"
       rawPage={(await searchParams).page}
       emptyTitle="No verified skills yet"

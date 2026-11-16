@@ -1,19 +1,26 @@
 import Link from 'next/link';
-import { listCategories, listCollections, listSkills } from '@skillxone/database';
+import {
+  listCategories,
+  listCollections,
+  listSkills,
+  metricsHistoryDays,
+} from '@skillxone/database';
 import { Section } from '@/components/page-parts';
 import { EmptyState, SkillList } from '@/components/skill-list';
 import { getDatabase } from '@/lib/db';
 import { AGENT_IDS, AGENT_INFO } from '@/lib/install';
 import { REPOSITORY_URL } from '@/lib/navigation';
+import { MIN_TREND_HISTORY_DAYS } from '@/lib/trending';
 
 export default async function HomePage() {
   const { db } = await getDatabase();
   const now = new Date();
+  // Trending is computed from star history this instance has recorded itself. Until a week
+  // exists, the section is ordered by recent activity and labelled as such.
+  const trendingReady = (await metricsHistoryDays(db)) >= MIN_TREND_HISTORY_DAYS;
   const [active, verified, updated, categories, collections] = await Promise.all([
-    // Until real star history exists (Phase 4) this section is ordered by recent activity
-    // and labelled accordingly, rather than presented as "trending".
-    listSkills(db, { sort: 'updated', pageSize: 8 }),
-    listSkills(db, { verification: 'VERIFIED', sort: 'popular', pageSize: 6 }),
+    listSkills(db, { sort: trendingReady ? 'trending' : 'updated', pageSize: 8 }),
+    listSkills(db, { verification: 'VERIFIED', sort: 'recommended', pageSize: 6 }),
     listSkills(db, { sort: 'newest', pageSize: 6 }),
     listCategories(db),
     listCollections(db),
@@ -79,8 +86,12 @@ export default async function HomePage() {
 
       <Section
         id="active-heading"
-        title="Recently active"
-        note="Ordered by latest content change. Trending needs star history, which is not collected yet."
+        title={trendingReady ? 'Trending' : 'Recently active'}
+        note={
+          trendingReady
+            ? 'Fastest star growth over the last 7 days, from recorded history.'
+            : 'Ordered by latest content change. Trending appears after a week of recorded star history.'
+        }
         href="/trending"
       >
         {active.items.length > 0 ? (

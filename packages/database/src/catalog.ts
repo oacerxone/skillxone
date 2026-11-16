@@ -28,6 +28,13 @@ export interface SkillQuery {
   verification?: VerificationState;
   category?: string;
   sort?: SkillSort;
+  /**
+   * Restrict results to these skill ids. With `sort: 'relevance'` the order of this list
+   * is the result order (it comes from the search backend, best match first).
+   */
+  restrictToIds?: readonly string[];
+  /** Skip the built-in substring match on `q` (the search backend already matched it). */
+  textMatched?: boolean;
   page?: number;
   pageSize?: number;
 }
@@ -48,6 +55,8 @@ export interface SkillListItem {
   repositoryArchived: boolean;
   /** Agent ids the skill is compatible with, sorted. */
   agents: string[];
+  /** Quality score 0..1, or null before the first ranking run. */
+  quality: number | null;
 }
 
 export interface SkillPage {
@@ -77,8 +86,17 @@ function baseQuery(db: Db, query: SkillQuery) {
   let qb = db
     .selectFrom('skills as s')
     .innerJoin('repositories as r', 'r.id', 's.repository_id')
+    .leftJoin('ranking_scores as rs', 'rs.skill_id', 's.id')
     .where('s.status', '=', 'active')
     .where('r.status', 'in', ['active', 'archived']);
+
+  if (query.restrictToIds) {
+    // An empty list must match nothing; `in ()` is not valid SQL.
+    qb =
+      query.restrictToIds.length > 0
+        ? qb.where('s.id', 'in', [...query.restrictToIds])
+        : qb.where(sql<boolean>`1 = 0`);
+  }
 
   if (query.verification) qb = qb.where('s.verification_state', '=', query.verification);
 
@@ -110,7 +128,7 @@ function baseQuery(db: Db, query: SkillQuery) {
     );
   }
 
-  for (const term of searchTerms(query.q)) {
+  for (const term of query.textMatched ? [] : searchTerms(query.q)) {
     const pattern = likePattern(term);
     // Every term must match at least one field. Values are bound parameters.
     qb = qb.where(
@@ -136,6 +154,7 @@ const itemColumns = [
   'r.name as repo',
   'r.stars as stars',
   'r.is_archived as is_archived',
+  'rs.quality_score as quality_score',
 ] as const;
 
 interface ItemRow {
@@ -153,6 +172,7 @@ interface ItemRow {
   repo: string;
   stars: number;
   is_archived: number;
+  quality_score: number | null;
 }
 
 async function agentsBySkill(db: Db, skillIds: string[]): Promise<Map<string, string[]>> {
@@ -193,6 +213,7 @@ async function toItems(db: Db, rows: ItemRow[]): Promise<SkillListItem[]> {
     lifecycleState: row.lifecycle_state,
     repositoryArchived: row.is_archived === 1,
     agents: agents.get(row.id) ?? [],
+    quality: row.quality_score === null ? null : Number(row.quality_score),
   }));
 }
 
@@ -202,6 +223,20 @@ export async function listSkills(db: Db, query: SkillQuery = {}): Promise<SkillP
     Math.max(1, Math.trunc(query.pageSize ?? DEFAULT_PAGE_SIZE)),
   );
   const requestedPage = Math.max(1, Math.trunc(query.page ?? 1));
+  const sort: SkillSort = query.sort ?? (query.restrictToIds ? 'relevance' : 'recommended');
+
+  if (sort === 'relevance' && query.restrictToIds) {
+    // The search backend supplied the order. Apply the filters in SQL, keep that order here.
+    const matching = await baseQuery(db, query).select('s.id as id').execute();
+    const allowed = new Set(matching.map((row) => row.id));
+    const ordered = query.restrictToIds.filter((id) => allowed.has(id));
+    const total = ordered.length;
+    const pageCount = Math.max(1, Math.ceil(total / pageSize));
+    const page = Math.min(requestedPage, pageCount);
+    const pageIds = ordered.slice((page - 1) * pageSize, page * pageSize);
+    const items = await listSkillsByIds(db, pageIds);
+    return { items, total, page, pageSize, pageCount };
+  }
 
   const countRow = await baseQuery(db, query)
     .select((eb) => eb.fn.countAll<number>().as('n'))
@@ -211,7 +246,23 @@ export async function listSkills(db: Db, query: SkillQuery = {}): Promise<SkillP
   const page = Math.min(requestedPage, pageCount);
 
   let qb = baseQuery(db, query).select(itemColumns);
-  switch (query.sort ?? 'popular') {
+  // Skills without a ranking row yet sort after ranked ones (coalesce to -1).
+  const ranked = (
+    column: 'quality_score' | 'trending_score' | 'rising_score' | 'maintenance_score',
+  ) => sql<number>`coalesce(${sql.ref(`rs.${column}`)}, -1)`;
+  switch (sort) {
+    case 'popular':
+      qb = qb.orderBy('r.stars', 'desc');
+      break;
+    case 'trending':
+      qb = qb.orderBy(ranked('trending_score'), 'desc').orderBy(ranked('quality_score'), 'desc');
+      break;
+    case 'rising':
+      qb = qb.orderBy(ranked('rising_score'), 'desc').orderBy(ranked('quality_score'), 'desc');
+      break;
+    case 'maintained':
+      qb = qb.orderBy(ranked('maintenance_score'), 'desc').orderBy(ranked('quality_score'), 'desc');
+      break;
     case 'updated':
       qb = qb.orderBy('s.content_updated_at', 'desc');
       break;
@@ -222,7 +273,8 @@ export async function listSkills(db: Db, query: SkillQuery = {}): Promise<SkillP
       qb = qb.orderBy('s.name', 'asc');
       break;
     default:
-      qb = qb.orderBy('r.stars', 'desc');
+      // 'recommended', and 'relevance' without a search: quality first, stars as a tie-break.
+      qb = qb.orderBy(ranked('quality_score'), 'desc').orderBy('r.stars', 'desc');
   }
   // The id tie-break keeps pagination stable when sort values are equal.
   const rows = await qb
@@ -232,6 +284,21 @@ export async function listSkills(db: Db, query: SkillQuery = {}): Promise<SkillP
     .execute();
 
   return { items: await toItems(db, rows), total, page, pageSize, pageCount };
+}
+
+/** Skills by id, returned in the order of `ids`. Unknown or inactive ids are skipped. */
+export async function listSkillsByIds(db: Db, ids: readonly string[]): Promise<SkillListItem[]> {
+  if (ids.length === 0) return [];
+  const rows = await db
+    .selectFrom('skills as s')
+    .innerJoin('repositories as r', 'r.id', 's.repository_id')
+    .leftJoin('ranking_scores as rs', 'rs.skill_id', 's.id')
+    .select(itemColumns)
+    .where('s.status', '=', 'active')
+    .where('s.id', 'in', [...ids])
+    .execute();
+  const byId = new Map((await toItems(db, rows)).map((item) => [item.id, item]));
+  return ids.flatMap((id) => byId.get(id) ?? []);
 }
 
 export interface CategorySummary {
@@ -315,6 +382,7 @@ export async function getCollection(db: Db, slug: string): Promise<CollectionDet
     .innerJoin('collections as c', 'c.id', 'cs.collection_id')
     .innerJoin('skills as s', 's.id', 'cs.skill_id')
     .innerJoin('repositories as r', 'r.id', 's.repository_id')
+    .leftJoin('ranking_scores as rs', 'rs.skill_id', 's.id')
     .select([...itemColumns, 'cs.note as note'])
     .where('c.slug', '=', slug)
     .where('s.status', '=', 'active')
@@ -353,6 +421,7 @@ export interface SecurityReport {
 export interface SkillDetail extends SkillListItem {
   path: string;
   repository: {
+    id: string;
     fullName: string;
     description: string | null;
     defaultBranch: string | null;
@@ -373,6 +442,12 @@ export interface SkillDetail extends SkillListItem {
   report: SecurityReport | null;
   verification: Selectable<VerificationRecordsTable> | null;
   verificationHistory: Array<Selectable<VerificationRecordsTable>>;
+  /** Per-signal ranking breakdown, or null before the first ranking run. */
+  ranking: {
+    computedAt: string | null;
+    signals: Record<string, { value: number; weight: number; explanation: string }>;
+    adjustments: string[];
+  } | null;
 }
 
 function parseJsonArray<T>(text: string | null | undefined): T[] {
@@ -385,13 +460,34 @@ function parseJsonArray<T>(text: string | null | undefined): T[] {
   }
 }
 
+function parseRanking(json: string | null, computedAt: string | null): SkillDetail['ranking'] {
+  if (!json) return null;
+  try {
+    const parsed = JSON.parse(json) as { signals?: unknown; adjustments?: unknown };
+    if (!parsed.signals || typeof parsed.signals !== 'object') return null;
+    return {
+      computedAt,
+      signals: parsed.signals as NonNullable<SkillDetail['ranking']>['signals'],
+      adjustments: Array.isArray(parsed.adjustments)
+        ? parsed.adjustments.filter((a): a is string => typeof a === 'string')
+        : [],
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function getSkillBySlug(db: Db, slug: string): Promise<SkillDetail | undefined> {
   const row = await db
     .selectFrom('skills as s')
     .innerJoin('repositories as r', 'r.id', 's.repository_id')
+    .leftJoin('ranking_scores as rs', 'rs.skill_id', 's.id')
     .select([
       ...itemColumns,
       's.path as path',
+      's.repository_id as repository_id',
+      'rs.signals_json as signals_json',
+      'rs.computed_at as ranking_computed_at',
       's.current_version_id as current_version_id',
       'r.description as repo_description',
       'r.default_branch as default_branch',
@@ -494,6 +590,7 @@ export async function getSkillBySlug(db: Db, slug: string): Promise<SkillDetail 
     ...item,
     path: row.path,
     repository: {
+      id: row.repository_id,
       fullName: `${row.owner}/${row.repo}`,
       description: row.repo_description,
       defaultBranch: row.default_branch,
@@ -517,6 +614,7 @@ export async function getSkillBySlug(db: Db, slug: string): Promise<SkillDetail 
     report,
     verification: verificationHistory.find((v) => v.superseded_at === null) ?? null,
     verificationHistory,
+    ranking: parseRanking(row.signals_json, row.ranking_computed_at),
   };
 }
 
@@ -547,6 +645,7 @@ export async function listRelatedSkills(
   const rows = await db
     .selectFrom('skills as s')
     .innerJoin('repositories as r', 'r.id', 's.repository_id')
+    .leftJoin('ranking_scores as rs', 'rs.skill_id', 's.id')
     .select(itemColumns)
     .where('s.status', '=', 'active')
     .where('s.id', '!=', skillId)
@@ -590,4 +689,84 @@ export async function metricsHistoryDays(db: Db): Promise<number> {
     .select((eb) => eb.fn.count<number>('captured_on').distinct().as('n'))
     .executeTakeFirstOrThrow();
   return Number(row.n);
+}
+
+/** Slug of an active skill by its id, for id-based API routes. */
+export async function getSkillSlugById(db: Db, id: string): Promise<string | undefined> {
+  const row = await db
+    .selectFrom('skills')
+    .select('slug')
+    .where('id', '=', id)
+    .where('status', '=', 'active')
+    .executeTakeFirst();
+  return row?.slug;
+}
+
+export interface RepositorySummary {
+  id: string;
+  fullName: string;
+  owner: string;
+  name: string;
+  description: string | null;
+  homepageUrl: string | null;
+  defaultBranch: string | null;
+  license: string | null;
+  stars: number;
+  forks: number;
+  openIssues: number;
+  archived: boolean;
+  pushedAt: string | null;
+  lastSyncedAt: string | null;
+  skillCount: number;
+}
+
+/** Public facts about an indexed repository. Internal fields (etag, errors) are not exposed. */
+export async function getRepositorySummary(
+  db: Db,
+  id: string,
+): Promise<RepositorySummary | undefined> {
+  const row = await db
+    .selectFrom('repositories as r')
+    .select((eb) => [
+      'r.id',
+      'r.owner',
+      'r.name',
+      'r.description',
+      'r.homepage_url',
+      'r.default_branch',
+      'r.license_spdx',
+      'r.stars',
+      'r.forks',
+      'r.open_issues',
+      'r.is_archived',
+      'r.pushed_at',
+      'r.last_synced_at',
+      eb
+        .selectFrom('skills as s')
+        .select((sub) => sub.fn.countAll<number>().as('n'))
+        .whereRef('s.repository_id', '=', 'r.id')
+        .where('s.status', '=', 'active')
+        .as('skill_count'),
+    ])
+    .where('r.id', '=', id)
+    .where('r.status', 'in', ['active', 'archived'])
+    .executeTakeFirst();
+  if (!row) return undefined;
+  return {
+    id: row.id,
+    fullName: `${row.owner}/${row.name}`,
+    owner: row.owner,
+    name: row.name,
+    description: row.description,
+    homepageUrl: row.homepage_url,
+    defaultBranch: row.default_branch,
+    license: row.license_spdx,
+    stars: Number(row.stars),
+    forks: Number(row.forks),
+    openIssues: Number(row.open_issues),
+    archived: row.is_archived === 1,
+    pushedAt: row.pushed_at,
+    lastSyncedAt: row.last_synced_at,
+    skillCount: Number(row.skill_count ?? 0),
+  };
 }

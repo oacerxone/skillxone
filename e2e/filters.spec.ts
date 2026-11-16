@@ -29,7 +29,7 @@ test.describe('Explore filters live in the URL', () => {
 
   test('typing searches after a pause, highlights matches and can be cleared', async ({ page }) => {
     await page.goto('/explore');
-    const search = page.getByRole('main').getByRole('searchbox');
+    const search = page.getByRole('combobox', { name: /^Search/ });
     await search.fill('terraform');
     await expect(page).toHaveURL(/\/explore\?q=terraform$/);
     await expect(page.locator('mark').first()).toHaveText(/terraform/i);
@@ -56,7 +56,7 @@ test.describe('Explore filters live in the URL', () => {
       `/explore?q=${encodeURIComponent(payload)}&category=${encodeURIComponent("x' OR 1=1")}&sort=bogus&page=-5`,
     );
     await expect(page.getByText('No skills match these filters')).toBeVisible();
-    await expect(page.getByRole('main').getByRole('searchbox')).toHaveValue(payload);
+    await expect(page.getByRole('combobox', { name: /^Search/ })).toHaveValue(payload);
     await expect(page.locator('main img')).toHaveCount(0);
     expect(dialogs).toEqual([]);
   });
@@ -78,6 +78,6 @@ test.describe('Explore filters live in the URL', () => {
     test.skip(isMobile, 'keyboard shortcut is a desktop affordance');
     await page.goto('/explore');
     await page.locator('body').press('/');
-    await expect(page.getByRole('main').getByRole('searchbox')).toBeFocused();
+    await expect(page.getByRole('combobox', { name: /^Search/ })).toBeFocused();
   });
 });
