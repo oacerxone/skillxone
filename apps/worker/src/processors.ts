@@ -1,0 +1,126 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { listRepositoriesToRecrawl } from '@skillxone/database';
+import {
+  codeSearchProvider,
+  collectionProvider,
+  parseRepoRef,
+  repoSearchProvider,
+  seedProvider,
+} from '@skillxone/github';
+import type { DiscoveryProvider, RepoCandidate } from '@skillxone/github';
+import { findWorkspaceRoot } from '@skillxone/shared';
+import { baseProcessors } from './runner';
+import type { ProcessorRegistry } from './runner';
+import { syncRepository } from './sync';
+import type { SyncDeps } from './sync';
+
+export interface SeedFile {
+  repositories: string[];
+  collections: string[];
+  searchQueries: string[];
+}
+
+const stringList = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+
+/** Reads `catalog/seeds.json`. A missing or malformed file yields empty lists, not a crash. */
+export function loadSeedFile(root: string = findWorkspaceRoot()): SeedFile {
+  try {
+    const parsed = JSON.parse(readFileSync(join(root, 'catalog', 'seeds.json'), 'utf8')) as Record<
+      string,
+      unknown
+    >;
+    return {
+      repositories: stringList(parsed.repositories),
+      collections: stringList(parsed.collections),
+      searchQueries: stringList(parsed.searchQueries),
+    };
+  } catch {
+    return { repositories: [], collections: [], searchQueries: [] };
+  }
+}
+
+export const DISCOVERY_PROVIDERS = [
+  'seed',
+  'repo-search',
+  'code-search',
+  'collection',
+  'recrawl',
+] as const;
+export type DiscoveryProviderId = (typeof DISCOVERY_PROVIDERS)[number];
+
+export interface DiscoverResult {
+  provider: string;
+  candidates: number;
+  enqueued: number;
+  notes: string[];
+}
+
+/** Runs one discovery provider and queues a sync job per candidate repository. */
+export async function runDiscovery(
+  deps: SyncDeps,
+  seeds: SeedFile,
+  providerId: DiscoveryProviderId,
+  options: { recrawlOlderThanMs?: number; recrawlLimit?: number } = {},
+): Promise<DiscoverResult> {
+  const notes: string[] = [];
+  const candidates: RepoCandidate[] = [];
+
+  if (providerId === 'recrawl') {
+    // Previously indexed repositories, least recently checked first.
+    const due = await listRepositoriesToRecrawl(deps.db, {
+      olderThan: new Date(deps.now().getTime() - (options.recrawlOlderThanMs ?? 20 * 60 * 60_000)),
+      limit: options.recrawlLimit ?? 500,
+    });
+    for (const repo of due)
+      candidates.push({ owner: repo.owner, repo: repo.name, source: 'recrawl' });
+  } else {
+    const providers: Record<Exclude<DiscoveryProviderId, 'recrawl'>, DiscoveryProvider> = {
+      seed: seedProvider(seeds.repositories),
+      'repo-search': repoSearchProvider(deps.client, seeds.searchQueries),
+      'code-search': codeSearchProvider(deps.client),
+      collection: collectionProvider(deps.client, seeds.collections),
+    };
+    for await (const candidate of providers[providerId].discover({ notes }))
+      candidates.push(candidate);
+  }
+
+  let enqueued = 0;
+  for (const candidate of candidates) {
+    const key = `sync:${candidate.owner}/${candidate.repo}`.toLowerCase();
+    const result = await deps.queue.enqueue(
+      'sync_repo',
+      { owner: candidate.owner, repo: candidate.repo, source: candidate.source },
+      { dedupeKey: key, schedule: `discover:${providerId}` },
+    );
+    if (result.created) enqueued += 1;
+  }
+  return { provider: providerId, candidates: candidates.length, enqueued, notes };
+}
+
+export function createProcessors(
+  deps: SyncDeps,
+  seeds: SeedFile = loadSeedFile(),
+): ProcessorRegistry {
+  return {
+    ...baseProcessors,
+
+    async sync_repo(payload, { job }) {
+      const data = payload as { owner?: unknown; repo?: unknown; source?: unknown };
+      // Payloads come from the database; validate them again before they reach a URL.
+      const ref = parseRepoRef(`${String(data.owner)}/${String(data.repo)}`);
+      if (!ref) throw new Error('sync_repo payload does not name a valid repository');
+      const source = typeof data.source === 'string' ? data.source.slice(0, 40) : 'unknown';
+      return syncRepository(deps, { ...ref, source }, job.id);
+    },
+
+    async discover(payload) {
+      const provider = (payload as { provider?: unknown }).provider;
+      if (!DISCOVERY_PROVIDERS.includes(provider as DiscoveryProviderId)) {
+        throw new Error(`Unknown discovery provider: ${String(provider).slice(0, 40)}`);
+      }
+      return runDiscovery(deps, seeds, provider as DiscoveryProviderId);
+    },
+  };
+}

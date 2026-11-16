@@ -44,6 +44,11 @@ export interface JobQueue {
   complete(jobId: string, workerId: string, result?: unknown): Promise<boolean>;
   /** Records a failure and schedules a retry, or marks the job dead after the last attempt. */
   fail(jobId: string, workerId: string, error: string): Promise<'retry' | 'dead' | 'lost'>;
+  /**
+   * Returns a running job to the queue to run at `runAfter`, without counting the attempt.
+   * Used when the work could not start for an external reason such as a rate limit.
+   */
+  defer(jobId: string, workerId: string, runAfter: Date, note: string): Promise<boolean>;
   get(jobId: string): Promise<Job | undefined>;
   counts(): Promise<Record<string, number>>;
 }
@@ -233,6 +238,24 @@ export function createJobQueue(db: Kysely<Database>, options: JobQueueOptions = 
         .executeTakeFirst();
       if (Number(updated.numUpdatedRows) === 0) return 'lost';
       return exhausted ? 'dead' : 'retry';
+    },
+
+    async defer(jobId, workerId, runAfter, note) {
+      const updated = await db
+        .updateTable('sync_jobs')
+        .set((eb) => ({
+          status: 'queued',
+          run_after: toIso(runAfter),
+          attempts: eb('attempts', '-', 1),
+          last_error: note.slice(0, ERROR_MAX_LENGTH),
+          locked_by: null,
+          locked_until: null,
+        }))
+        .where('id', '=', jobId)
+        .where('status', '=', 'running')
+        .where('locked_by', '=', workerId)
+        .executeTakeFirst();
+      return Number(updated.numUpdatedRows) > 0;
     },
 
     get(jobId) {

@@ -17,6 +17,11 @@ const envSchema = z.object({
     .string()
     .optional()
     .transform((v) => (v ? v : undefined)),
+  GITHUB_USER_AGENT: z
+    .string()
+    .regex(/^[\w .()/:+@-]{1,120}$/, 'may contain letters, digits, spaces and . ( ) / : + @ -')
+    .optional()
+    .transform((v) => (v ? v : undefined)),
   WORKER_CONCURRENCY: positiveInt(4),
   SCAN_CONCURRENCY: positiveInt(1),
   ALLOW_DEV_FIXTURES: z

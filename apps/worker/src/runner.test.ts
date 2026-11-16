@@ -22,7 +22,7 @@ describe('drainQueue', () => {
     const a = await queue.enqueue('noop');
     await queue.enqueue('noop');
     const summary = await drainQueue(queue, baseProcessors, { workerId: 'w' });
-    expect(summary).toEqual({ succeeded: 2, retried: 0, dead: 0, lost: 0 });
+    expect(summary).toEqual({ succeeded: 2, retried: 0, dead: 0, lost: 0, deferred: 0 });
     expect((await queue.get(a.id))?.result_json).toBe('{"ok":true}');
   });
 
@@ -72,6 +72,31 @@ describe('drainQueue', () => {
     expect((await queue.get(done.id))?.attempts).toBe(1);
     expect((await queue.get(interrupted.id))?.status).toBe('succeeded');
     expect((await queue.get(interrupted.id))?.attempts).toBe(2);
+  });
+
+  it('parks rate-limited jobs until the reset time and stops the run', async () => {
+    const first = await queue.enqueue('limited', {}, { maxAttempts: 1 });
+    const second = await queue.enqueue('limited', {}, { maxAttempts: 1 });
+    const resetAt = new Date(now + 30 * 60_000);
+    let calls = 0;
+    const summary = await drainQueue(
+      queue,
+      {
+        limited: async () => {
+          calls += 1;
+          throw Object.assign(new Error('rate limited'), { resetAt });
+        },
+      },
+      { workerId: 'w' },
+    );
+    expect(calls).toBe(1); // the second job was not attempted against the same limit
+    expect(summary).toMatchObject({ deferred: 1, dead: 0, retried: 0 });
+    expect(await queue.get(first.id)).toMatchObject({
+      status: 'queued',
+      attempts: 0,
+      run_after: resetAt.toISOString(),
+    });
+    expect((await queue.get(second.id))?.status).toBe('queued');
   });
 
   it('stops when the abort signal fires', async () => {

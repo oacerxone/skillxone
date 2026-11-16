@@ -2,8 +2,8 @@
 
 An open-source, self-hostable marketplace for discovering, evaluating and installing AI agent skills hosted on GitHub. Initial agents: Claude Code and OpenAI Codex.
 
-> **Status: Phase 2 of 10 — public marketplace UI on development fixtures.**
-> The site, search filters, skill pages, security report layout and install panel work, but they show **clearly labelled fixture data**. GitHub ingestion, ranked search, the security scanner and working submissions are **not built yet**. See the [roadmap](docs/ROADMAP.md).
+> **Status: Phase 3 of 10 — GitHub ingestion works.**
+> The site and the indexer both work: `pnpm worker discover` and `pnpm worker drain` index real `SKILL.md` skills from GitHub. Ranked search, the security scanner (every real skill is therefore shown as Unverified), working submissions and deployment packaging are **not built yet**. See the [roadmap](docs/ROADMAP.md).
 
 ## What it will do
 
@@ -39,17 +39,22 @@ Other commands:
 | `pnpm build`                    | Production build of the web app                             |
 | `pnpm worker help`              | Worker CLI: `migrate`, `seed`, `status`, `enqueue`, `drain` |
 | `pnpm worker seed --remove-dev` | Delete the development fixtures                             |
+| `pnpm worker discover`          | Queue the seed repositories in `catalog/seeds.json`         |
+| `pnpm worker drain`             | Run queued jobs (index repositories), then exit             |
+| `pnpm worker sync owner/repo`   | Index one repository now                                    |
 
 ## Repository layout
 
-| Path                | Role                                                                     |
-| ------------------- | ------------------------------------------------------------------------ |
-| `apps/web`          | Next.js site and API                                                     |
-| `apps/worker`       | Command-line worker: migrations, seeds, queued jobs                      |
-| `packages/shared`   | Types, ids, environment validation                                       |
-| `packages/database` | Schema, migrations, job queue (SQLite default, PostgreSQL adapter)       |
-| `packages/ui`       | Design tokens                                                            |
-| `docs/`             | Architecture, decisions, schema, security policy, design system, roadmap |
+| Path                    | Role                                                                          |
+| ----------------------- | ----------------------------------------------------------------------------- |
+| `apps/web`              | Next.js site and API                                                          |
+| `apps/worker`           | Command-line worker: migrations, seeds, queued jobs                           |
+| `packages/shared`       | Types, ids, environment validation                                            |
+| `packages/database`     | Schema, migrations, job queue (SQLite default, PostgreSQL adapter)            |
+| `packages/github`       | GitHub REST client, rate limits, discovery providers                          |
+| `packages/skill-parser` | Finds skills in a file listing, parses and validates `SKILL.md`, content hash |
+| `packages/ui`           | Design tokens                                                                 |
+| `docs/`                 | Architecture, decisions, schema, security policy, design system, roadmap      |
 
 ## Documents
 
@@ -60,6 +65,7 @@ Other commands:
 | [Database schema](docs/architecture/database-schema.md)     | Tables, indexes and conventions                                           |
 | [Verification policy](docs/security/verification-policy.md) | What Verified, Unverified and Flagged mean                                |
 | [Design system](docs/architecture/design-system.md)         | Tokens, components, accessibility                                         |
+| [Ingestion guide](docs/development/ingestion.md)            | Indexing real repositories: commands, costs, limits                       |
 | [Roadmap](docs/ROADMAP.md)                                  | Phases with acceptance checks                                             |
 
 ## Contributing

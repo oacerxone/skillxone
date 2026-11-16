@@ -161,7 +161,7 @@ discover -> resolve repo -> list tree -> locate skills -> fetch skill files -> p
         -> upsert version (if hash changed) -> enqueue scan -> enqueue rank -> update search index
 ```
 
-- **No git clones.** One Git Trees API call per repository (`recursive=1`) lists every path; blobs are fetched only for files inside skill directories, streamed, with per-file (512 KB) and per-skill (5 MB) caps. Truncated trees fall back to per-directory listing.
+- **No git clones.** One Git Trees API call per repository (`recursive=1`) lists every path. File contents are then downloaded only for files inside skill directories, at the exact commit, from `raw.githubusercontent.com`, which does not consume the API quota. Downloads are streamed with per-file (512 KB) and per-skill (5 MB) caps; files beyond the caps are listed but not stored. Truncated trees fall back to per-directory listing.
 - **Unchanged repositories cost one conditional request.** We store the ETag and default-branch head SHA; a `304` or an unchanged SHA ends the job.
 - **Identity.** A repository is keyed by GitHub's numeric `id`, which survives renames and transfers. A skill is keyed by `(repository_id, directory path)`. A renamed directory is matched to its old record by content hash and recorded as a path change instead of a delete plus create.
 - **Rate limits.** A budget object reads `x-ratelimit-*` headers, pauses the job until reset when low, and honours `retry-after` on secondary limits. Code search is treated as scarce: authenticated only, about 10 requests per minute, 1000 results per query, default branch only. Queries are partitioned by path and file size and the provider is optional.

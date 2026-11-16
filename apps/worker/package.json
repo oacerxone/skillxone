@@ -8,6 +8,8 @@
   },
   "dependencies": {
     "@skillxone/database": "workspace:*",
-    "@skillxone/shared": "workspace:*"
+    "@skillxone/github": "workspace:*",
+    "@skillxone/shared": "workspace:*",
+    "@skillxone/skill-parser": "workspace:*"
   }
 }

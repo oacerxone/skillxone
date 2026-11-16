@@ -1,0 +1,19 @@
+{
+  "$comment": "Curated starting points for discovery. Each entry is a public GitHub repository believed to contain SKILL.md files. Entries are only candidates: a repository that does not exist or has no skills is recorded as an ingestion error and skipped. Add entries by pull request.",
+  "repositories": [
+    "anthropics/skills",
+    "vercel-labs/agent-skills",
+    "openai/skills",
+    "obra/superpowers",
+    "vercel-labs/skills",
+    "huggingface/skills",
+    "supabase/agent-skills",
+    "expo/skills",
+    "remotion-dev/skills",
+    "better-auth/skills",
+    "github/awesome-copilot",
+    "cloudflare/skills"
+  ],
+  "collections": [],
+  "searchQueries": ["topic:agent-skills", "topic:claude-skills", "topic:claude-code-skills"]
+}

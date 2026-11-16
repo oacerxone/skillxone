@@ -13,7 +13,12 @@ import {
 import type { DatabaseHandle } from '@skillxone/database';
 import { EnvError, loadRootEnvFile, parseEnv } from '@skillxone/shared';
 import type { Env } from '@skillxone/shared';
-import { baseProcessors, drainQueue } from './runner';
+import { GitHubClient, parseRepoRef } from '@skillxone/github';
+import { DISCOVERY_PROVIDERS, createProcessors, loadSeedFile, runDiscovery } from './processors';
+import type { DiscoveryProviderId } from './processors';
+import { drainQueue } from './runner';
+import { syncRepository } from './sync';
+import type { SyncDeps } from './sync';
 
 const HELP = `skillxone worker
 
@@ -24,6 +29,9 @@ Commands:
   seed [--dev]            Load reference data (categories); --dev also loads fixtures
   seed --remove-dev       Delete all development fixtures
   status                  Show database and queue status
+  discover [--provider p] Queue sync jobs for candidate repositories
+                          (seed | repo-search | code-search | collection | recrawl; default seed)
+  sync <owner/repo>       Index one repository now and print the result
   enqueue <type>          Add a job  [--payload <json>] [--dedupe <key>] [--priority <n>]
   drain                   Run queued jobs until none are runnable, then exit  [--max <n>]
   help                    Show this message
@@ -32,6 +40,23 @@ Commands:
 class UsageError extends Error {}
 
 type Command = (args: string[], ctx: { env: Env; handle: DatabaseHandle }) => Promise<void>;
+
+function syncDeps(env: Env, handle: DatabaseHandle): SyncDeps {
+  return {
+    db: handle.db,
+    client: new GitHubClient({ token: env.GITHUB_TOKEN, userAgent: env.GITHUB_USER_AGENT }),
+    queue: createJobQueue(handle.db),
+    now: () => new Date(),
+    limits: { downloadConcurrency: env.WORKER_CONCURRENCY },
+  };
+}
+
+function printRateLimit(deps: SyncDeps): void {
+  const { requests, notModified, remaining, limit } = deps.client.rateLimit;
+  console.log(
+    `GitHub API: ${requests} request(s), ${notModified} not modified, ${remaining ?? '?'} of ${limit ?? '?'} remaining${deps.client.authenticated ? '' : ' (unauthenticated)'}.`,
+  );
+}
 
 const commands: Record<string, Command> = {
   async migrate(_args, { handle }) {
@@ -87,6 +112,30 @@ const commands: Record<string, Command> = {
     console.log(`Jobs:          ${summary || 'none'}`);
   },
 
+  async discover(args, { env, handle }) {
+    const { values } = parseArgs({ args, options: { provider: { type: 'string' } } });
+    const provider = values.provider ?? 'seed';
+    if (!DISCOVERY_PROVIDERS.includes(provider as DiscoveryProviderId)) {
+      throw new UsageError(`--provider must be one of: ${DISCOVERY_PROVIDERS.join(', ')}.`);
+    }
+    const deps = syncDeps(env, handle);
+    const result = await runDiscovery(deps, loadSeedFile(), provider as DiscoveryProviderId);
+    console.log(
+      `${result.provider}: ${result.candidates} candidate(s), ${result.enqueued} newly queued.`,
+    );
+    for (const note of result.notes) console.log(`  note: ${note}`);
+    if (deps.client.rateLimit.requests > 0) printRateLimit(deps);
+  },
+
+  async sync(args, { env, handle }) {
+    const ref = args[0] ? parseRepoRef(args[0]) : null;
+    if (!ref) throw new UsageError('sync requires a repository as owner/repo or a github.com URL.');
+    const deps = syncDeps(env, handle);
+    const summary = await syncRepository(deps, { ...ref, source: 'manual' });
+    console.log(JSON.stringify(summary, null, 2));
+    printRateLimit(deps);
+  },
+
   async enqueue(args, { handle }) {
     const { values, positionals } = parseArgs({
       args,
@@ -119,7 +168,7 @@ const commands: Record<string, Command> = {
     );
   },
 
-  async drain(args, { handle }) {
+  async drain(args, { env, handle }) {
     const { values } = parseArgs({ args, options: { max: { type: 'string' } } });
     const maxJobs = values.max === undefined ? undefined : Number(values.max);
     if (maxJobs !== undefined && (!Number.isInteger(maxJobs) || maxJobs < 1)) {
@@ -133,7 +182,8 @@ const commands: Record<string, Command> = {
     process.once('SIGTERM', stop);
 
     const workerId = `${hostname()}:${process.pid}:${randomUUID().slice(0, 8)}`;
-    const summary = await drainQueue(createJobQueue(handle.db), baseProcessors, {
+    const deps = syncDeps(env, handle);
+    const summary = await drainQueue(deps.queue, createProcessors(deps), {
       workerId,
       maxJobs,
       signal: controller.signal,
@@ -146,8 +196,9 @@ const commands: Record<string, Command> = {
       },
     });
     console.log(
-      `Done: ${summary.succeeded} succeeded, ${summary.retried} to retry, ${summary.dead} dead, ${summary.lost} lost.`,
+      `Done: ${summary.succeeded} succeeded, ${summary.retried} to retry, ${summary.deferred} deferred, ${summary.dead} dead, ${summary.lost} lost.`,
     );
+    if (deps.client.rateLimit.requests > 0) printRateLimit(deps);
     if (summary.dead > 0) process.exitCode = 1;
   },
 };

@@ -19,6 +19,10 @@ export function MarkdownView({ source, options }: { source: string; options?: Ma
         components: {
           pre: (props) => <pre tabIndex={0} {...props} />,
           table: (props) => <table tabIndex={0} {...props} />,
+          // GFM task lists render as disabled checkboxes; give each an accessible name.
+          input: (props) => (
+            <input {...props} aria-label={props.checked ? 'Completed' : 'Not completed'} />
+          ),
         },
       })}
     </div>

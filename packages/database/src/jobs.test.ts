@@ -170,6 +170,29 @@ describe('completion, failure and retry', () => {
   });
 });
 
+describe('deferral', () => {
+  it('parks a job until a later time without using up an attempt', async () => {
+    const { id } = await queue.enqueue('sync', {}, { maxAttempts: 1 });
+    await queue.claim('w1', [], LEASE);
+    const resume = new Date(START.getTime() + 3_600_000);
+    expect(await queue.defer(id, 'w1', resume, 'rate limited')).toBe(true);
+
+    const parked = await queue.get(id);
+    expect(parked).toMatchObject({ status: 'queued', attempts: 0, last_error: 'rate limited' });
+    expect(await queue.claim('w1', [], LEASE)).toBeNull();
+
+    clock.advance(3_600_000);
+    // Still claimable although maxAttempts is 1: the deferred run did not count.
+    expect((await queue.claim('w1', [], LEASE))?.attempts).toBe(1);
+  });
+
+  it('is ignored from a worker that does not hold the lease', async () => {
+    const { id } = await queue.enqueue('sync');
+    await queue.claim('w1', [], LEASE);
+    expect(await queue.defer(id, 'other', new Date(), 'x')).toBe(false);
+  });
+});
+
 describe('leases and crash recovery', () => {
   it('lets another worker reclaim a job whose lease expired', async () => {
     const { id } = await queue.enqueue('noop');
