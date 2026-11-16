@@ -3,13 +3,17 @@
 import { useState } from 'react';
 import type { VerificationState } from '@skillxone/shared/constants';
 import { AGENT_INFO, buildInstallPlan, isAgentId } from '@/lib/install';
-import type { AgentId, InstallScope } from '@/lib/install';
+import type { InstallMethod, InstallScope } from '@/lib/install';
 import { CopyButton } from './copy-button';
 
 interface Props {
   owner: string;
   repo: string;
   skillName: string;
+  /** Skill folder inside the repository ('' at the root). */
+  skillPath: string;
+  hasDescription: boolean;
+  specValid: boolean;
   /** Agent ids this skill is compatible with. */
   agents: string[];
   verificationState: VerificationState;
@@ -71,17 +75,24 @@ function Command({ id, text }: { id: string; text: string }) {
 
 export function InstallPanel(props: Props) {
   const supported = props.agents.filter(isAgentId);
-  const [agent, setAgent] = useState<AgentId>(supported[0] ?? 'claude-code');
+  const [agent, setAgent] = useState<string>(supported[0] ?? 'claude-code');
   const [scope, setScope] = useState<InstallScope>('project');
+  const [method, setMethod] = useState<InstallMethod>('symlink');
   const [pin, setPin] = useState(true);
 
   const usePin = props.verifiedCommit !== undefined && pin;
   const plan = buildInstallPlan({
     owner: props.owner,
     repo: props.repo,
-    skillName: props.skillName,
+    skillPath: props.skillPath,
+    skill: {
+      name: props.skillName,
+      hasDescription: props.hasDescription,
+      specValid: props.specValid,
+    },
     agent,
     scope,
+    method,
     commitSha: usePin ? props.verifiedCommit : undefined,
   });
 
@@ -125,7 +136,7 @@ export function InstallPanel(props: Props) {
             name="install-agent"
             value={agent}
             onChange={setAgent}
-            options={supported.map((id) => ({ value: id, label: AGENT_INFO[id].label }))}
+            options={supported.map((id) => ({ value: id, label: AGENT_INFO[id]?.label ?? id }))}
           />
           <Segmented
             legend="Scope"
@@ -135,6 +146,17 @@ export function InstallPanel(props: Props) {
             options={[
               { value: 'project', label: 'This project' },
               { value: 'global', label: 'All projects' },
+            ]}
+          />
+          <Segmented
+            legend="Method"
+            name="install-method"
+            value={method}
+            onChange={setMethod}
+            options={[
+              { value: 'symlink', label: 'skills CLI' },
+              { value: 'copy', label: 'CLI, copy' },
+              { value: 'manual', label: 'Manual' },
             ]}
           />
 
@@ -158,45 +180,67 @@ export function InstallPanel(props: Props) {
 
           {plan.ok ? (
             <>
-              <div>
-                <p className="label" id="install-command-label">
-                  Run in your {scope === 'project' ? 'project folder' : 'terminal'}
-                </p>
-                <Command id="install-command" text={plan.install} />
-                <p className="mt-2 text-[12px] leading-4 text-text-muted">
-                  Installs to <code className="font-mono">{plan.targetDir}</code>
-                </p>
-              </div>
+              {plan.install ? (
+                <div>
+                  <p className="label" id="install-command-label">
+                    Run in your {scope === 'project' ? 'project folder' : 'terminal'}
+                  </p>
+                  <Command id="install-command" text={plan.install} />
+                  <p className="mt-2 text-[12px] leading-4 text-text-muted">
+                    Installs to <code className="font-mono">{plan.targetDir}</code>
+                    {method === 'copy' ? ' as an independent copy.' : ''}
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <p className="label">Install without the CLI</p>
+                  <ol className="list-decimal space-y-1 pl-5 text-[13px] leading-5">
+                    {plan.steps.map((step) => (
+                      <li key={step} className="break-words">
+                        {step}
+                      </li>
+                    ))}
+                  </ol>
+                  <p className="mt-2 text-[13px]">
+                    <a href={plan.sourceUrl} className="link" rel="noopener noreferrer">
+                      Open the skill folder on GitHub
+                    </a>
+                  </p>
+                </div>
+              )}
+
+              {plan.warnings.length > 0 && (
+                <ul className="list-disc space-y-1 pl-5 text-[12px] leading-4 text-text-muted">
+                  {plan.warnings.map((warning) => (
+                    <li key={warning}>{warning}</li>
+                  ))}
+                </ul>
+              )}
 
               <details className="text-[13px] leading-5">
                 <summary className="cursor-pointer font-medium">Prerequisites</summary>
                 <ul className="mt-2 list-disc space-y-1 pl-5 text-text-muted">
-                  <li>Node.js 22.20 or later (required by the skills CLI).</li>
-                  <li>{AGENT_INFO[agent].label} installed.</li>
-                  <li>
-                    The skills CLI sends anonymous usage data unless{' '}
-                    <code className="font-mono">DISABLE_TELEMETRY=1</code> is set.
-                  </li>
+                  {plan.prerequisites.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
                 </ul>
               </details>
-              <details className="text-[13px] leading-5">
-                <summary className="cursor-pointer font-medium">Update</summary>
-                <div className="mt-2">
-                  <Command id="update-command" text={plan.update} />
-                  {plan.pinned && (
-                    <p className="mt-2 text-text-muted">
-                      Updating moves past the verified commit. Check this page for a newer
-                      assessment first.
-                    </p>
-                  )}
-                </div>
-              </details>
-              <details className="text-[13px] leading-5">
-                <summary className="cursor-pointer font-medium">Uninstall</summary>
-                <div className="mt-2">
-                  <Command id="uninstall-command" text={plan.uninstall} />
-                </div>
-              </details>
+              {plan.update && (
+                <details className="text-[13px] leading-5">
+                  <summary className="cursor-pointer font-medium">Update</summary>
+                  <div className="mt-2">
+                    <Command id="update-command" text={plan.update} />
+                  </div>
+                </details>
+              )}
+              {plan.uninstall && (
+                <details className="text-[13px] leading-5">
+                  <summary className="cursor-pointer font-medium">Uninstall</summary>
+                  <div className="mt-2">
+                    <Command id="uninstall-command" text={plan.uninstall} />
+                  </div>
+                </details>
+              )}
             </>
           ) : (
             <p className="rounded-sm bg-warning-bg px-3 py-2 text-[13px] text-warning-fg">

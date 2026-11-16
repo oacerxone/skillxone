@@ -1,0 +1,673 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`every agent × scope × pin × method × shell > claude-code global pinned copy posix 1`] = `
+{
+  "install": "npx skills add octo/skills@0123456789abcdef0123456789abcdef01234567 --skill pdf-tools -a claude-code -g --copy",
+  "sourceUrl": "https://github.com/octo/skills/tree/0123456789abcdef0123456789abcdef01234567/skills/pdf-tools",
+  "steps": [
+    "Edits to existing skills are picked up live; run /reload-skills if the skills folder is new, or restart Claude Code.",
+  ],
+  "targetDir": "~/.claude/skills/pdf-tools/",
+  "uninstall": "npx skills remove pdf-tools -a claude-code -g",
+  "update": "npx skills update pdf-tools -g",
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > claude-code global pinned copy powershell 1`] = `
+{
+  "install": "npx skills add octo/skills@0123456789abcdef0123456789abcdef01234567 --skill pdf-tools -a claude-code -g --copy",
+  "sourceUrl": "https://github.com/octo/skills/tree/0123456789abcdef0123456789abcdef01234567/skills/pdf-tools",
+  "steps": [
+    "Edits to existing skills are picked up live; run /reload-skills if the skills folder is new, or restart Claude Code.",
+  ],
+  "targetDir": "~/.claude/skills/pdf-tools/",
+  "uninstall": "npx skills remove pdf-tools -a claude-code -g",
+  "update": "npx skills update pdf-tools -g",
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > claude-code global pinned manual posix 1`] = `
+{
+  "install": null,
+  "sourceUrl": "https://github.com/octo/skills/tree/0123456789abcdef0123456789abcdef01234567/skills/pdf-tools",
+  "steps": [
+    "Download the skills/pdf-tools folder from https://github.com/octo/skills/tree/0123456789abcdef0123456789abcdef01234567/skills/pdf-tools (commit 0123456).",
+    "Copy it to ~/.claude/skills/pdf-tools/ so that SKILL.md is at ~/.claude/skills/pdf-tools/SKILL.md.",
+    "Edits to existing skills are picked up live; run /reload-skills if the skills folder is new, or restart Claude Code.",
+    "To uninstall, delete ~/.claude/skills/pdf-tools/.",
+  ],
+  "targetDir": "~/.claude/skills/pdf-tools/",
+  "uninstall": null,
+  "update": null,
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > claude-code global pinned manual powershell 1`] = `
+{
+  "install": null,
+  "sourceUrl": "https://github.com/octo/skills/tree/0123456789abcdef0123456789abcdef01234567/skills/pdf-tools",
+  "steps": [
+    "Download the skills/pdf-tools folder from https://github.com/octo/skills/tree/0123456789abcdef0123456789abcdef01234567/skills/pdf-tools (commit 0123456).",
+    "Copy it to ~/.claude/skills/pdf-tools/ so that SKILL.md is at ~/.claude/skills/pdf-tools/SKILL.md.",
+    "Edits to existing skills are picked up live; run /reload-skills if the skills folder is new, or restart Claude Code.",
+    "To uninstall, delete ~/.claude/skills/pdf-tools/.",
+  ],
+  "targetDir": "~/.claude/skills/pdf-tools/",
+  "uninstall": null,
+  "update": null,
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > claude-code global pinned symlink posix 1`] = `
+{
+  "install": "npx skills add octo/skills@0123456789abcdef0123456789abcdef01234567 --skill pdf-tools -a claude-code -g",
+  "sourceUrl": "https://github.com/octo/skills/tree/0123456789abcdef0123456789abcdef01234567/skills/pdf-tools",
+  "steps": [
+    "Edits to existing skills are picked up live; run /reload-skills if the skills folder is new, or restart Claude Code.",
+  ],
+  "targetDir": "~/.claude/skills/pdf-tools/",
+  "uninstall": "npx skills remove pdf-tools -a claude-code -g",
+  "update": "npx skills update pdf-tools -g",
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > claude-code global pinned symlink powershell 1`] = `
+{
+  "install": "npx skills add octo/skills@0123456789abcdef0123456789abcdef01234567 --skill pdf-tools -a claude-code -g",
+  "sourceUrl": "https://github.com/octo/skills/tree/0123456789abcdef0123456789abcdef01234567/skills/pdf-tools",
+  "steps": [
+    "Edits to existing skills are picked up live; run /reload-skills if the skills folder is new, or restart Claude Code.",
+  ],
+  "targetDir": "~/.claude/skills/pdf-tools/",
+  "uninstall": "npx skills remove pdf-tools -a claude-code -g",
+  "update": "npx skills update pdf-tools -g",
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > claude-code global unpinned copy posix 1`] = `
+{
+  "install": "npx skills add octo/skills --skill pdf-tools -a claude-code -g --copy",
+  "sourceUrl": "https://github.com/octo/skills/tree/HEAD/skills/pdf-tools",
+  "steps": [
+    "Edits to existing skills are picked up live; run /reload-skills if the skills folder is new, or restart Claude Code.",
+  ],
+  "targetDir": "~/.claude/skills/pdf-tools/",
+  "uninstall": "npx skills remove pdf-tools -a claude-code -g",
+  "update": "npx skills update pdf-tools -g",
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > claude-code global unpinned copy powershell 1`] = `
+{
+  "install": "npx skills add octo/skills --skill pdf-tools -a claude-code -g --copy",
+  "sourceUrl": "https://github.com/octo/skills/tree/HEAD/skills/pdf-tools",
+  "steps": [
+    "Edits to existing skills are picked up live; run /reload-skills if the skills folder is new, or restart Claude Code.",
+  ],
+  "targetDir": "~/.claude/skills/pdf-tools/",
+  "uninstall": "npx skills remove pdf-tools -a claude-code -g",
+  "update": "npx skills update pdf-tools -g",
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > claude-code global unpinned manual posix 1`] = `
+{
+  "install": null,
+  "sourceUrl": "https://github.com/octo/skills/tree/HEAD/skills/pdf-tools",
+  "steps": [
+    "Download the skills/pdf-tools folder from https://github.com/octo/skills/tree/HEAD/skills/pdf-tools.",
+    "Copy it to ~/.claude/skills/pdf-tools/ so that SKILL.md is at ~/.claude/skills/pdf-tools/SKILL.md.",
+    "Edits to existing skills are picked up live; run /reload-skills if the skills folder is new, or restart Claude Code.",
+    "To uninstall, delete ~/.claude/skills/pdf-tools/.",
+  ],
+  "targetDir": "~/.claude/skills/pdf-tools/",
+  "uninstall": null,
+  "update": null,
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > claude-code global unpinned manual powershell 1`] = `
+{
+  "install": null,
+  "sourceUrl": "https://github.com/octo/skills/tree/HEAD/skills/pdf-tools",
+  "steps": [
+    "Download the skills/pdf-tools folder from https://github.com/octo/skills/tree/HEAD/skills/pdf-tools.",
+    "Copy it to ~/.claude/skills/pdf-tools/ so that SKILL.md is at ~/.claude/skills/pdf-tools/SKILL.md.",
+    "Edits to existing skills are picked up live; run /reload-skills if the skills folder is new, or restart Claude Code.",
+    "To uninstall, delete ~/.claude/skills/pdf-tools/.",
+  ],
+  "targetDir": "~/.claude/skills/pdf-tools/",
+  "uninstall": null,
+  "update": null,
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > claude-code global unpinned symlink posix 1`] = `
+{
+  "install": "npx skills add octo/skills --skill pdf-tools -a claude-code -g",
+  "sourceUrl": "https://github.com/octo/skills/tree/HEAD/skills/pdf-tools",
+  "steps": [
+    "Edits to existing skills are picked up live; run /reload-skills if the skills folder is new, or restart Claude Code.",
+  ],
+  "targetDir": "~/.claude/skills/pdf-tools/",
+  "uninstall": "npx skills remove pdf-tools -a claude-code -g",
+  "update": "npx skills update pdf-tools -g",
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > claude-code global unpinned symlink powershell 1`] = `
+{
+  "install": "npx skills add octo/skills --skill pdf-tools -a claude-code -g",
+  "sourceUrl": "https://github.com/octo/skills/tree/HEAD/skills/pdf-tools",
+  "steps": [
+    "Edits to existing skills are picked up live; run /reload-skills if the skills folder is new, or restart Claude Code.",
+  ],
+  "targetDir": "~/.claude/skills/pdf-tools/",
+  "uninstall": "npx skills remove pdf-tools -a claude-code -g",
+  "update": "npx skills update pdf-tools -g",
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > claude-code project pinned copy posix 1`] = `
+{
+  "install": "npx skills add octo/skills@0123456789abcdef0123456789abcdef01234567 --skill pdf-tools -a claude-code --copy",
+  "sourceUrl": "https://github.com/octo/skills/tree/0123456789abcdef0123456789abcdef01234567/skills/pdf-tools",
+  "steps": [
+    "Edits to existing skills are picked up live; run /reload-skills if the skills folder is new, or restart Claude Code.",
+  ],
+  "targetDir": ".claude/skills/pdf-tools/",
+  "uninstall": "npx skills remove pdf-tools -a claude-code",
+  "update": "npx skills update pdf-tools -p",
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > claude-code project pinned copy powershell 1`] = `
+{
+  "install": "npx skills add octo/skills@0123456789abcdef0123456789abcdef01234567 --skill pdf-tools -a claude-code --copy",
+  "sourceUrl": "https://github.com/octo/skills/tree/0123456789abcdef0123456789abcdef01234567/skills/pdf-tools",
+  "steps": [
+    "Edits to existing skills are picked up live; run /reload-skills if the skills folder is new, or restart Claude Code.",
+  ],
+  "targetDir": ".claude/skills/pdf-tools/",
+  "uninstall": "npx skills remove pdf-tools -a claude-code",
+  "update": "npx skills update pdf-tools -p",
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > claude-code project pinned manual posix 1`] = `
+{
+  "install": null,
+  "sourceUrl": "https://github.com/octo/skills/tree/0123456789abcdef0123456789abcdef01234567/skills/pdf-tools",
+  "steps": [
+    "Download the skills/pdf-tools folder from https://github.com/octo/skills/tree/0123456789abcdef0123456789abcdef01234567/skills/pdf-tools (commit 0123456).",
+    "Copy it to .claude/skills/pdf-tools/ so that SKILL.md is at .claude/skills/pdf-tools/SKILL.md.",
+    "Edits to existing skills are picked up live; run /reload-skills if the skills folder is new, or restart Claude Code.",
+    "To uninstall, delete .claude/skills/pdf-tools/.",
+  ],
+  "targetDir": ".claude/skills/pdf-tools/",
+  "uninstall": null,
+  "update": null,
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > claude-code project pinned manual powershell 1`] = `
+{
+  "install": null,
+  "sourceUrl": "https://github.com/octo/skills/tree/0123456789abcdef0123456789abcdef01234567/skills/pdf-tools",
+  "steps": [
+    "Download the skills/pdf-tools folder from https://github.com/octo/skills/tree/0123456789abcdef0123456789abcdef01234567/skills/pdf-tools (commit 0123456).",
+    "Copy it to .claude/skills/pdf-tools/ so that SKILL.md is at .claude/skills/pdf-tools/SKILL.md.",
+    "Edits to existing skills are picked up live; run /reload-skills if the skills folder is new, or restart Claude Code.",
+    "To uninstall, delete .claude/skills/pdf-tools/.",
+  ],
+  "targetDir": ".claude/skills/pdf-tools/",
+  "uninstall": null,
+  "update": null,
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > claude-code project pinned symlink posix 1`] = `
+{
+  "install": "npx skills add octo/skills@0123456789abcdef0123456789abcdef01234567 --skill pdf-tools -a claude-code",
+  "sourceUrl": "https://github.com/octo/skills/tree/0123456789abcdef0123456789abcdef01234567/skills/pdf-tools",
+  "steps": [
+    "Edits to existing skills are picked up live; run /reload-skills if the skills folder is new, or restart Claude Code.",
+  ],
+  "targetDir": ".claude/skills/pdf-tools/",
+  "uninstall": "npx skills remove pdf-tools -a claude-code",
+  "update": "npx skills update pdf-tools -p",
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > claude-code project pinned symlink powershell 1`] = `
+{
+  "install": "npx skills add octo/skills@0123456789abcdef0123456789abcdef01234567 --skill pdf-tools -a claude-code",
+  "sourceUrl": "https://github.com/octo/skills/tree/0123456789abcdef0123456789abcdef01234567/skills/pdf-tools",
+  "steps": [
+    "Edits to existing skills are picked up live; run /reload-skills if the skills folder is new, or restart Claude Code.",
+  ],
+  "targetDir": ".claude/skills/pdf-tools/",
+  "uninstall": "npx skills remove pdf-tools -a claude-code",
+  "update": "npx skills update pdf-tools -p",
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > claude-code project unpinned copy posix 1`] = `
+{
+  "install": "npx skills add octo/skills --skill pdf-tools -a claude-code --copy",
+  "sourceUrl": "https://github.com/octo/skills/tree/HEAD/skills/pdf-tools",
+  "steps": [
+    "Edits to existing skills are picked up live; run /reload-skills if the skills folder is new, or restart Claude Code.",
+  ],
+  "targetDir": ".claude/skills/pdf-tools/",
+  "uninstall": "npx skills remove pdf-tools -a claude-code",
+  "update": "npx skills update pdf-tools -p",
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > claude-code project unpinned copy powershell 1`] = `
+{
+  "install": "npx skills add octo/skills --skill pdf-tools -a claude-code --copy",
+  "sourceUrl": "https://github.com/octo/skills/tree/HEAD/skills/pdf-tools",
+  "steps": [
+    "Edits to existing skills are picked up live; run /reload-skills if the skills folder is new, or restart Claude Code.",
+  ],
+  "targetDir": ".claude/skills/pdf-tools/",
+  "uninstall": "npx skills remove pdf-tools -a claude-code",
+  "update": "npx skills update pdf-tools -p",
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > claude-code project unpinned manual posix 1`] = `
+{
+  "install": null,
+  "sourceUrl": "https://github.com/octo/skills/tree/HEAD/skills/pdf-tools",
+  "steps": [
+    "Download the skills/pdf-tools folder from https://github.com/octo/skills/tree/HEAD/skills/pdf-tools.",
+    "Copy it to .claude/skills/pdf-tools/ so that SKILL.md is at .claude/skills/pdf-tools/SKILL.md.",
+    "Edits to existing skills are picked up live; run /reload-skills if the skills folder is new, or restart Claude Code.",
+    "To uninstall, delete .claude/skills/pdf-tools/.",
+  ],
+  "targetDir": ".claude/skills/pdf-tools/",
+  "uninstall": null,
+  "update": null,
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > claude-code project unpinned manual powershell 1`] = `
+{
+  "install": null,
+  "sourceUrl": "https://github.com/octo/skills/tree/HEAD/skills/pdf-tools",
+  "steps": [
+    "Download the skills/pdf-tools folder from https://github.com/octo/skills/tree/HEAD/skills/pdf-tools.",
+    "Copy it to .claude/skills/pdf-tools/ so that SKILL.md is at .claude/skills/pdf-tools/SKILL.md.",
+    "Edits to existing skills are picked up live; run /reload-skills if the skills folder is new, or restart Claude Code.",
+    "To uninstall, delete .claude/skills/pdf-tools/.",
+  ],
+  "targetDir": ".claude/skills/pdf-tools/",
+  "uninstall": null,
+  "update": null,
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > claude-code project unpinned symlink posix 1`] = `
+{
+  "install": "npx skills add octo/skills --skill pdf-tools -a claude-code",
+  "sourceUrl": "https://github.com/octo/skills/tree/HEAD/skills/pdf-tools",
+  "steps": [
+    "Edits to existing skills are picked up live; run /reload-skills if the skills folder is new, or restart Claude Code.",
+  ],
+  "targetDir": ".claude/skills/pdf-tools/",
+  "uninstall": "npx skills remove pdf-tools -a claude-code",
+  "update": "npx skills update pdf-tools -p",
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > claude-code project unpinned symlink powershell 1`] = `
+{
+  "install": "npx skills add octo/skills --skill pdf-tools -a claude-code",
+  "sourceUrl": "https://github.com/octo/skills/tree/HEAD/skills/pdf-tools",
+  "steps": [
+    "Edits to existing skills are picked up live; run /reload-skills if the skills folder is new, or restart Claude Code.",
+  ],
+  "targetDir": ".claude/skills/pdf-tools/",
+  "uninstall": "npx skills remove pdf-tools -a claude-code",
+  "update": "npx skills update pdf-tools -p",
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > codex global pinned copy posix 1`] = `
+{
+  "install": "npx skills add octo/skills@0123456789abcdef0123456789abcdef01234567 --skill pdf-tools -a codex -g --copy",
+  "sourceUrl": "https://github.com/octo/skills/tree/0123456789abcdef0123456789abcdef01234567/skills/pdf-tools",
+  "steps": [
+    "Codex detects new skills automatically; restart Codex if one does not appear.",
+  ],
+  "targetDir": "~/.agents/skills/pdf-tools/",
+  "uninstall": "npx skills remove pdf-tools -a codex -g",
+  "update": "npx skills update pdf-tools -g",
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > codex global pinned copy powershell 1`] = `
+{
+  "install": "npx skills add octo/skills@0123456789abcdef0123456789abcdef01234567 --skill pdf-tools -a codex -g --copy",
+  "sourceUrl": "https://github.com/octo/skills/tree/0123456789abcdef0123456789abcdef01234567/skills/pdf-tools",
+  "steps": [
+    "Codex detects new skills automatically; restart Codex if one does not appear.",
+  ],
+  "targetDir": "~/.agents/skills/pdf-tools/",
+  "uninstall": "npx skills remove pdf-tools -a codex -g",
+  "update": "npx skills update pdf-tools -g",
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > codex global pinned manual posix 1`] = `
+{
+  "install": null,
+  "sourceUrl": "https://github.com/octo/skills/tree/0123456789abcdef0123456789abcdef01234567/skills/pdf-tools",
+  "steps": [
+    "Download the skills/pdf-tools folder from https://github.com/octo/skills/tree/0123456789abcdef0123456789abcdef01234567/skills/pdf-tools (commit 0123456).",
+    "Copy it to ~/.agents/skills/pdf-tools/ so that SKILL.md is at ~/.agents/skills/pdf-tools/SKILL.md.",
+    "Codex detects new skills automatically; restart Codex if one does not appear.",
+    "To uninstall, delete ~/.agents/skills/pdf-tools/.",
+  ],
+  "targetDir": "~/.agents/skills/pdf-tools/",
+  "uninstall": null,
+  "update": null,
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > codex global pinned manual powershell 1`] = `
+{
+  "install": null,
+  "sourceUrl": "https://github.com/octo/skills/tree/0123456789abcdef0123456789abcdef01234567/skills/pdf-tools",
+  "steps": [
+    "Download the skills/pdf-tools folder from https://github.com/octo/skills/tree/0123456789abcdef0123456789abcdef01234567/skills/pdf-tools (commit 0123456).",
+    "Copy it to ~/.agents/skills/pdf-tools/ so that SKILL.md is at ~/.agents/skills/pdf-tools/SKILL.md.",
+    "Codex detects new skills automatically; restart Codex if one does not appear.",
+    "To uninstall, delete ~/.agents/skills/pdf-tools/.",
+  ],
+  "targetDir": "~/.agents/skills/pdf-tools/",
+  "uninstall": null,
+  "update": null,
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > codex global pinned symlink posix 1`] = `
+{
+  "install": "npx skills add octo/skills@0123456789abcdef0123456789abcdef01234567 --skill pdf-tools -a codex -g",
+  "sourceUrl": "https://github.com/octo/skills/tree/0123456789abcdef0123456789abcdef01234567/skills/pdf-tools",
+  "steps": [
+    "Codex detects new skills automatically; restart Codex if one does not appear.",
+  ],
+  "targetDir": "~/.agents/skills/pdf-tools/",
+  "uninstall": "npx skills remove pdf-tools -a codex -g",
+  "update": "npx skills update pdf-tools -g",
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > codex global pinned symlink powershell 1`] = `
+{
+  "install": "npx skills add octo/skills@0123456789abcdef0123456789abcdef01234567 --skill pdf-tools -a codex -g",
+  "sourceUrl": "https://github.com/octo/skills/tree/0123456789abcdef0123456789abcdef01234567/skills/pdf-tools",
+  "steps": [
+    "Codex detects new skills automatically; restart Codex if one does not appear.",
+  ],
+  "targetDir": "~/.agents/skills/pdf-tools/",
+  "uninstall": "npx skills remove pdf-tools -a codex -g",
+  "update": "npx skills update pdf-tools -g",
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > codex global unpinned copy posix 1`] = `
+{
+  "install": "npx skills add octo/skills --skill pdf-tools -a codex -g --copy",
+  "sourceUrl": "https://github.com/octo/skills/tree/HEAD/skills/pdf-tools",
+  "steps": [
+    "Codex detects new skills automatically; restart Codex if one does not appear.",
+  ],
+  "targetDir": "~/.agents/skills/pdf-tools/",
+  "uninstall": "npx skills remove pdf-tools -a codex -g",
+  "update": "npx skills update pdf-tools -g",
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > codex global unpinned copy powershell 1`] = `
+{
+  "install": "npx skills add octo/skills --skill pdf-tools -a codex -g --copy",
+  "sourceUrl": "https://github.com/octo/skills/tree/HEAD/skills/pdf-tools",
+  "steps": [
+    "Codex detects new skills automatically; restart Codex if one does not appear.",
+  ],
+  "targetDir": "~/.agents/skills/pdf-tools/",
+  "uninstall": "npx skills remove pdf-tools -a codex -g",
+  "update": "npx skills update pdf-tools -g",
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > codex global unpinned manual posix 1`] = `
+{
+  "install": null,
+  "sourceUrl": "https://github.com/octo/skills/tree/HEAD/skills/pdf-tools",
+  "steps": [
+    "Download the skills/pdf-tools folder from https://github.com/octo/skills/tree/HEAD/skills/pdf-tools.",
+    "Copy it to ~/.agents/skills/pdf-tools/ so that SKILL.md is at ~/.agents/skills/pdf-tools/SKILL.md.",
+    "Codex detects new skills automatically; restart Codex if one does not appear.",
+    "To uninstall, delete ~/.agents/skills/pdf-tools/.",
+  ],
+  "targetDir": "~/.agents/skills/pdf-tools/",
+  "uninstall": null,
+  "update": null,
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > codex global unpinned manual powershell 1`] = `
+{
+  "install": null,
+  "sourceUrl": "https://github.com/octo/skills/tree/HEAD/skills/pdf-tools",
+  "steps": [
+    "Download the skills/pdf-tools folder from https://github.com/octo/skills/tree/HEAD/skills/pdf-tools.",
+    "Copy it to ~/.agents/skills/pdf-tools/ so that SKILL.md is at ~/.agents/skills/pdf-tools/SKILL.md.",
+    "Codex detects new skills automatically; restart Codex if one does not appear.",
+    "To uninstall, delete ~/.agents/skills/pdf-tools/.",
+  ],
+  "targetDir": "~/.agents/skills/pdf-tools/",
+  "uninstall": null,
+  "update": null,
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > codex global unpinned symlink posix 1`] = `
+{
+  "install": "npx skills add octo/skills --skill pdf-tools -a codex -g",
+  "sourceUrl": "https://github.com/octo/skills/tree/HEAD/skills/pdf-tools",
+  "steps": [
+    "Codex detects new skills automatically; restart Codex if one does not appear.",
+  ],
+  "targetDir": "~/.agents/skills/pdf-tools/",
+  "uninstall": "npx skills remove pdf-tools -a codex -g",
+  "update": "npx skills update pdf-tools -g",
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > codex global unpinned symlink powershell 1`] = `
+{
+  "install": "npx skills add octo/skills --skill pdf-tools -a codex -g",
+  "sourceUrl": "https://github.com/octo/skills/tree/HEAD/skills/pdf-tools",
+  "steps": [
+    "Codex detects new skills automatically; restart Codex if one does not appear.",
+  ],
+  "targetDir": "~/.agents/skills/pdf-tools/",
+  "uninstall": "npx skills remove pdf-tools -a codex -g",
+  "update": "npx skills update pdf-tools -g",
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > codex project pinned copy posix 1`] = `
+{
+  "install": "npx skills add octo/skills@0123456789abcdef0123456789abcdef01234567 --skill pdf-tools -a codex --copy",
+  "sourceUrl": "https://github.com/octo/skills/tree/0123456789abcdef0123456789abcdef01234567/skills/pdf-tools",
+  "steps": [
+    "Codex detects new skills automatically; restart Codex if one does not appear.",
+  ],
+  "targetDir": ".agents/skills/pdf-tools/",
+  "uninstall": "npx skills remove pdf-tools -a codex",
+  "update": "npx skills update pdf-tools -p",
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > codex project pinned copy powershell 1`] = `
+{
+  "install": "npx skills add octo/skills@0123456789abcdef0123456789abcdef01234567 --skill pdf-tools -a codex --copy",
+  "sourceUrl": "https://github.com/octo/skills/tree/0123456789abcdef0123456789abcdef01234567/skills/pdf-tools",
+  "steps": [
+    "Codex detects new skills automatically; restart Codex if one does not appear.",
+  ],
+  "targetDir": ".agents/skills/pdf-tools/",
+  "uninstall": "npx skills remove pdf-tools -a codex",
+  "update": "npx skills update pdf-tools -p",
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > codex project pinned manual posix 1`] = `
+{
+  "install": null,
+  "sourceUrl": "https://github.com/octo/skills/tree/0123456789abcdef0123456789abcdef01234567/skills/pdf-tools",
+  "steps": [
+    "Download the skills/pdf-tools folder from https://github.com/octo/skills/tree/0123456789abcdef0123456789abcdef01234567/skills/pdf-tools (commit 0123456).",
+    "Copy it to .agents/skills/pdf-tools/ so that SKILL.md is at .agents/skills/pdf-tools/SKILL.md.",
+    "Codex detects new skills automatically; restart Codex if one does not appear.",
+    "To uninstall, delete .agents/skills/pdf-tools/.",
+  ],
+  "targetDir": ".agents/skills/pdf-tools/",
+  "uninstall": null,
+  "update": null,
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > codex project pinned manual powershell 1`] = `
+{
+  "install": null,
+  "sourceUrl": "https://github.com/octo/skills/tree/0123456789abcdef0123456789abcdef01234567/skills/pdf-tools",
+  "steps": [
+    "Download the skills/pdf-tools folder from https://github.com/octo/skills/tree/0123456789abcdef0123456789abcdef01234567/skills/pdf-tools (commit 0123456).",
+    "Copy it to .agents/skills/pdf-tools/ so that SKILL.md is at .agents/skills/pdf-tools/SKILL.md.",
+    "Codex detects new skills automatically; restart Codex if one does not appear.",
+    "To uninstall, delete .agents/skills/pdf-tools/.",
+  ],
+  "targetDir": ".agents/skills/pdf-tools/",
+  "uninstall": null,
+  "update": null,
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > codex project pinned symlink posix 1`] = `
+{
+  "install": "npx skills add octo/skills@0123456789abcdef0123456789abcdef01234567 --skill pdf-tools -a codex",
+  "sourceUrl": "https://github.com/octo/skills/tree/0123456789abcdef0123456789abcdef01234567/skills/pdf-tools",
+  "steps": [
+    "Codex detects new skills automatically; restart Codex if one does not appear.",
+  ],
+  "targetDir": ".agents/skills/pdf-tools/",
+  "uninstall": "npx skills remove pdf-tools -a codex",
+  "update": "npx skills update pdf-tools -p",
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > codex project pinned symlink powershell 1`] = `
+{
+  "install": "npx skills add octo/skills@0123456789abcdef0123456789abcdef01234567 --skill pdf-tools -a codex",
+  "sourceUrl": "https://github.com/octo/skills/tree/0123456789abcdef0123456789abcdef01234567/skills/pdf-tools",
+  "steps": [
+    "Codex detects new skills automatically; restart Codex if one does not appear.",
+  ],
+  "targetDir": ".agents/skills/pdf-tools/",
+  "uninstall": "npx skills remove pdf-tools -a codex",
+  "update": "npx skills update pdf-tools -p",
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > codex project unpinned copy posix 1`] = `
+{
+  "install": "npx skills add octo/skills --skill pdf-tools -a codex --copy",
+  "sourceUrl": "https://github.com/octo/skills/tree/HEAD/skills/pdf-tools",
+  "steps": [
+    "Codex detects new skills automatically; restart Codex if one does not appear.",
+  ],
+  "targetDir": ".agents/skills/pdf-tools/",
+  "uninstall": "npx skills remove pdf-tools -a codex",
+  "update": "npx skills update pdf-tools -p",
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > codex project unpinned copy powershell 1`] = `
+{
+  "install": "npx skills add octo/skills --skill pdf-tools -a codex --copy",
+  "sourceUrl": "https://github.com/octo/skills/tree/HEAD/skills/pdf-tools",
+  "steps": [
+    "Codex detects new skills automatically; restart Codex if one does not appear.",
+  ],
+  "targetDir": ".agents/skills/pdf-tools/",
+  "uninstall": "npx skills remove pdf-tools -a codex",
+  "update": "npx skills update pdf-tools -p",
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > codex project unpinned manual posix 1`] = `
+{
+  "install": null,
+  "sourceUrl": "https://github.com/octo/skills/tree/HEAD/skills/pdf-tools",
+  "steps": [
+    "Download the skills/pdf-tools folder from https://github.com/octo/skills/tree/HEAD/skills/pdf-tools.",
+    "Copy it to .agents/skills/pdf-tools/ so that SKILL.md is at .agents/skills/pdf-tools/SKILL.md.",
+    "Codex detects new skills automatically; restart Codex if one does not appear.",
+    "To uninstall, delete .agents/skills/pdf-tools/.",
+  ],
+  "targetDir": ".agents/skills/pdf-tools/",
+  "uninstall": null,
+  "update": null,
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > codex project unpinned manual powershell 1`] = `
+{
+  "install": null,
+  "sourceUrl": "https://github.com/octo/skills/tree/HEAD/skills/pdf-tools",
+  "steps": [
+    "Download the skills/pdf-tools folder from https://github.com/octo/skills/tree/HEAD/skills/pdf-tools.",
+    "Copy it to .agents/skills/pdf-tools/ so that SKILL.md is at .agents/skills/pdf-tools/SKILL.md.",
+    "Codex detects new skills automatically; restart Codex if one does not appear.",
+    "To uninstall, delete .agents/skills/pdf-tools/.",
+  ],
+  "targetDir": ".agents/skills/pdf-tools/",
+  "uninstall": null,
+  "update": null,
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > codex project unpinned symlink posix 1`] = `
+{
+  "install": "npx skills add octo/skills --skill pdf-tools -a codex",
+  "sourceUrl": "https://github.com/octo/skills/tree/HEAD/skills/pdf-tools",
+  "steps": [
+    "Codex detects new skills automatically; restart Codex if one does not appear.",
+  ],
+  "targetDir": ".agents/skills/pdf-tools/",
+  "uninstall": "npx skills remove pdf-tools -a codex",
+  "update": "npx skills update pdf-tools -p",
+}
+`;
+
+exports[`every agent × scope × pin × method × shell > codex project unpinned symlink powershell 1`] = `
+{
+  "install": "npx skills add octo/skills --skill pdf-tools -a codex",
+  "sourceUrl": "https://github.com/octo/skills/tree/HEAD/skills/pdf-tools",
+  "steps": [
+    "Codex detects new skills automatically; restart Codex if one does not appear.",
+  ],
+  "targetDir": ".agents/skills/pdf-tools/",
+  "uninstall": "npx skills remove pdf-tools -a codex",
+  "update": "npx skills update pdf-tools -p",
+}
+`;

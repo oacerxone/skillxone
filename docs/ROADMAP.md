@@ -93,6 +93,8 @@ Acceptance:
 - Contract test: generated commands run with the real `skills` CLI in a temporary directory and the skill appears at the adapter's stated path. Requires Node 22.20 or later; if unavailable the test is reported as not run.
 - Adding a third dummy agent in a test touches only `packages/installer/agents/`.
 
+Status: done. `packages/installer` checked against skills CLI 1.9.0 and both agents' documentation on 2026-11-16 ([installer notes](development/installer.md)). The contract test is opt-in (`SKILLS_CONTRACT=1`) and runs in the CI `installer-contract` job. It was not run on the development machine, which has Node 22.16.
+
 ## Phase 7 — Automation
 
 - Schedules (trending 6 h, recent daily, full weekly, ranking daily, verification expiry), all configurable. `worker enqueue`, `worker drain`, `worker serve`, `worker status`. Admin Jobs page.

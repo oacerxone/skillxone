@@ -25,18 +25,19 @@ All four of `lint`, `typecheck`, `test` and `build` must pass before a change is
 
 ## Layout
 
-| Path                    | Role                                                                                                      |
-| ----------------------- | --------------------------------------------------------------------------------------------------------- |
-| `apps/web`              | Next.js app: pages, `/api`, later `/admin`. Reads the database; never scans or calls GitHub in a request. |
-| `apps/worker`           | CLI that migrates, seeds and runs queued jobs. The only heavy writer.                                     |
-| `packages/shared`       | Types, constants, ids, env validation. Imports no internal package.                                       |
-| `packages/database`     | Kysely schema types, migrations, job queue, seeds.                                                        |
-| `packages/github`       | GitHub client and discovery providers. Validates every owner/repo before it reaches a URL.                |
-| `packages/skill-parser` | Pure functions: locate skills, parse `SKILL.md`, content hash. No I/O.                                    |
-| `packages/search`       | Search backends. The only place with dialect-specific SQL besides the connection code.                    |
-| `packages/ranking`      | Pure scoring functions. No I/O.                                                                           |
-| `packages/security`     | Static scanners, rule engine and the verification policy as code. Reads stored text; executes nothing.    |
-| `packages/ui`           | Design tokens and (later) presentational components.                                                      |
+| Path                    | Role                                                                                                           |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `apps/web`              | Next.js app: pages, `/api`, later `/admin`. Reads the database; never scans or calls GitHub in a request.      |
+| `apps/worker`           | CLI that migrates, seeds and runs queued jobs. The only heavy writer.                                          |
+| `packages/shared`       | Types, constants, ids, env validation. Imports no internal package.                                            |
+| `packages/database`     | Kysely schema types, migrations, job queue, seeds.                                                             |
+| `packages/github`       | GitHub client and discovery providers. Validates every owner/repo before it reaches a URL.                     |
+| `packages/skill-parser` | Pure functions: locate skills, parse `SKILL.md`, content hash. No I/O.                                         |
+| `packages/search`       | Search backends. The only place with dialect-specific SQL besides the connection code.                         |
+| `packages/ranking`      | Pure scoring functions. No I/O.                                                                                |
+| `packages/installer`    | Agent adapters and install-command builder. Pure; produces text, runs nothing. New agents go in `src/agents/`. |
+| `packages/security`     | Static scanners, rule engine and the verification policy as code. Reads stored text; executes nothing.         |
+| `packages/ui`           | Design tokens and (later) presentational components.                                                           |
 
 ## Rules that are enforced
 

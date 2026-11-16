@@ -49,6 +49,17 @@ test('the install panel reacts to agent, scope and pinning', async ({ page }) =>
   await expect(command).toHaveText(
     'npx skills add example-fixture/ops-skills --skill dockerfile-reviewer -a codex -g',
   );
+
+  await page.getByText('CLI, copy', { exact: true }).click();
+  await expect(command).toHaveText(/ -g --copy$/);
+
+  await page.getByText('Manual', { exact: true }).click();
+  await expect(command).toHaveCount(0);
+  await expect(page.getByText('Install without the CLI')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Open the skill folder on GitHub' })).toHaveAttribute(
+    'href',
+    /^https:\/\/github\.com\/example-fixture\/ops-skills\/tree\/HEAD\//,
+  );
 });
 
 test('a flagged skill shows its findings and a warning above the command', async ({ page }) => {

@@ -71,7 +71,7 @@ export default async function HomePage() {
             {AGENT_IDS.map((id) => (
               <li key={id}>
                 <Link href={`/explore?agent=${id}`} className="chip">
-                  {AGENT_INFO[id].label}
+                  {AGENT_INFO[id]?.label ?? id}
                 </Link>
               </li>
             ))}

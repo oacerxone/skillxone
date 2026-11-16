@@ -15,6 +15,7 @@ const allowedInternalImports = {
   github: ['shared'],
   ranking: ['shared'],
   security: ['shared'],
+  installer: ['shared'],
   search: ['shared', 'database'],
 };
 

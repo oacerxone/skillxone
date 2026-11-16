@@ -44,6 +44,9 @@ importers:
       '@skillxone/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@skillxone/installer':
+        specifier: workspace:*
+        version: link:../../packages/installer
       '@skillxone/search':
         specifier: workspace:*
         version: link:../../packages/search
@@ -156,6 +159,12 @@ importers:
         version: 8.23.1
 
   packages/github:
+    dependencies:
+      '@skillxone/shared':
+        specifier: workspace:*
+        version: link:../shared
+
+  packages/installer:
     dependencies:
       '@skillxone/shared':
         specifier: workspace:*

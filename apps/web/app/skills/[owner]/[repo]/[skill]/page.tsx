@@ -326,6 +326,9 @@ export default async function SkillPage({ params, searchParams }: Props) {
             owner={skill.owner}
             repo={skill.repo}
             skillName={skill.name}
+            skillPath={skill.path}
+            hasDescription={skill.description.trim().length > 0}
+            specValid={skill.specValid}
             agents={skill.agents}
             verificationState={skill.verificationState}
             verifiedCommit={

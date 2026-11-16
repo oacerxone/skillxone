@@ -19,7 +19,12 @@ const ENDPOINTS = [
   ],
   ['GET', '/api/v1/skills/:id/versions', 'Indexed versions of a skill.', 'Available'],
   ['GET', '/api/v1/skills/:id/security', 'Security report for the current version.', 'Available'],
-  ['GET', '/api/v1/skills/:id/install', 'Install commands per agent.', 'Planned'],
+  [
+    'GET',
+    '/api/v1/skills/:id/install',
+    'Install, update and uninstall instructions. Query: agent, scope (project|global), method (symlink|copy|manual), pin (true|false), shell (posix|powershell).',
+    'Available',
+  ],
   ['GET', '/api/v1/search', 'Ranked search; q is required.', 'Available'],
   ['GET', '/api/v1/suggest', 'Skill-name completions for a partial query.', 'Available'],
   ['GET', '/api/v1/categories', 'Categories with counts.', 'Available'],

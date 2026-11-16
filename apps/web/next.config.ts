@@ -3,7 +3,12 @@ import type { NextConfig } from 'next';
 
 const config: NextConfig = {
   // Internal packages ship TypeScript source; Next compiles them.
-  transpilePackages: ['@skillxone/shared', '@skillxone/database', '@skillxone/ui'],
+  transpilePackages: [
+    '@skillxone/shared',
+    '@skillxone/database',
+    '@skillxone/ui',
+    '@skillxone/installer',
+  ],
   // Native and server-only drivers must not be bundled.
   serverExternalPackages: ['better-sqlite3', 'pg'],
   outputFileTracingRoot: path.join(import.meta.dirname, '../..'),

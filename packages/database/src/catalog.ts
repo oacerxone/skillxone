@@ -420,6 +420,8 @@ export interface SecurityReport {
 
 export interface SkillDetail extends SkillListItem {
   path: string;
+  /** Whether SKILL.md follows the Agent Skills specification. */
+  specValid: boolean;
   repository: {
     id: string;
     fullName: string;
@@ -485,6 +487,7 @@ export async function getSkillBySlug(db: Db, slug: string): Promise<SkillDetail 
     .select([
       ...itemColumns,
       's.path as path',
+      's.spec_valid as spec_valid',
       's.repository_id as repository_id',
       'rs.signals_json as signals_json',
       'rs.computed_at as ranking_computed_at',
@@ -591,6 +594,7 @@ export async function getSkillBySlug(db: Db, slug: string): Promise<SkillDetail 
   return {
     ...item,
     path: row.path,
+    specValid: Number(row.spec_valid) === 1,
     repository: {
       id: row.repository_id,
       fullName: `${row.owner}/${row.repo}`,

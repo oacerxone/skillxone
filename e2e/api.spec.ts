@@ -68,6 +68,33 @@ test.describe('REST API v1', () => {
     expect((await (await request.get('/api/v1/suggest?q=r')).json()).data).toEqual([]);
   });
 
+  test('builds install instructions without running anything', async ({ request }) => {
+    const list = await (await request.get('/api/v1/skills?q=dockerfile-reviewer')).json();
+    const id = list.data[0].id;
+    const body = await (
+      await request.get(`/api/v1/skills/${id}/install?agent=codex&scope=global`)
+    ).json();
+    expect(body.data.verification).toBe('VERIFIED');
+    expect(body.data.plan).toMatchObject({
+      agent: { id: 'codex', label: 'Codex' },
+      pinned: true,
+      targetDir: '~/.agents/skills/dockerfile-reviewer/',
+    });
+    expect(body.data.plan.install).toMatch(
+      /^npx skills add example-fixture\/ops-skills@[0-9a-f]{40} --skill dockerfile-reviewer -a codex -g$/,
+    );
+    const manual = await (
+      await request.get(`/api/v1/skills/${id}/install?method=manual&pin=false`)
+    ).json();
+    expect(manual.data.plan).toMatchObject({ install: null, pinned: false });
+    expect(manual.data.plan.steps.length).toBeGreaterThan(1);
+
+    for (const query of ['agent=cursor', 'scope=system', 'method=curl', 'pin=maybe', 'shell=cmd']) {
+      const response = await request.get(`/api/v1/skills/${id}/install?${query}`);
+      expect(response.status(), query).toBe(400);
+    }
+  });
+
   test('returns one skill, its versions and its security report by id', async ({ request }) => {
     const list = await (await request.get('/api/v1/skills?q=remote-setup-helper')).json();
     const id = list.data[0].id;
