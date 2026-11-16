@@ -53,6 +53,15 @@ test.describe('admin pages', () => {
     });
   }
 
+  test('removing someone from the allowlist takes effect for an existing session', async ({
+    request,
+  }) => {
+    const revoked = createTestSession('revoked-admin');
+    expect((await request.get('/admin', { headers: { cookie: revoked.cookie } })).status()).toBe(
+      403,
+    );
+  });
+
   test('a forged or expired cookie is refused', async ({ request }) => {
     expect(
       (

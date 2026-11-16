@@ -4,6 +4,7 @@ import type { SessionUser, UserRole } from '@skillxone/database';
 import { loadRootEnvFile, parseEnv } from '@skillxone/shared';
 import { apiError, clientKey } from './api';
 import { getDatabase } from './db';
+import { roleFor } from './oauth';
 import type { OAuthConfig } from './oauth';
 import { csrfToken, originAllowed, verifyCsrf } from './security';
 
@@ -45,12 +46,27 @@ export function cookieOptions(maxAgeSeconds: number, path = '/') {
   };
 }
 
+/**
+ * The operator's allowlist decides roles on every request, not only at sign-in, so removing
+ * someone from ADMIN_GITHUB_IDS or MODERATOR_GITHUB_IDS takes effect immediately for sessions
+ * that already exist.
+ */
+function withCurrentRole(session: SessionUser | null): SessionUser | null {
+  if (!session) return null;
+  const env = siteEnv();
+  const role = roleFor(Number(session.user.github_id), {
+    adminIds: env.ADMIN_GITHUB_IDS,
+    moderatorIds: env.MODERATOR_GITHUB_IDS,
+  });
+  return { ...session, user: { ...session.user, role } };
+}
+
 /** The signed-in user for a page or server component, or null. */
 export async function currentSession(): Promise<(SessionUser & { csrf: string }) | null> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;
   const { db } = await getDatabase();
-  const session = await findSession(db, token, new Date());
+  const session = withCurrentRole(await findSession(db, token, new Date()));
   return session ? { ...session, csrf: csrfToken(session.csrfSecret) } : null;
 }
 
@@ -66,7 +82,7 @@ export async function sessionFromRequest(request: Request): Promise<SessionUser 
   const token = readCookie(request, SESSION_COOKIE);
   if (!token) return null;
   const { db } = await getDatabase();
-  return findSession(db, token, new Date());
+  return withCurrentRole(await findSession(db, token, new Date()));
 }
 
 /** Keyed hash of the caller's address, or null when the address is not known. */

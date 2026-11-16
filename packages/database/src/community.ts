@@ -138,8 +138,9 @@ export async function listAudit(
 // Users and sessions
 
 /**
- * Creates or updates the account for a GitHub user. The role comes from the operator's
- * allowlist on every login, so removing someone from the allowlist takes effect at once.
+ * Creates or updates the account for a GitHub user. The stored role is a record of the last
+ * sign-in; the web app re-derives the effective role from the operator's allowlist on every
+ * request (apps/web/lib/auth.ts).
  */
 export async function upsertGitHubUser(
   db: Db,

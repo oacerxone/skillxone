@@ -13,6 +13,23 @@ Catalog: the real 668-skill seed catalog (`data/live.db`). Load: 20 concurrent c
 
 For a 1 GB server, cap the V8 heap. The systemd unit sets `--max-old-space-size=256` and `MemoryMax=700M`. Twenty concurrent clients is far more than a small catalog site normally sees.
 
+## Page load (lab Core Web Vitals)
+
+Production build on the 668-skill catalog, measured with `node scripts/measure-vitals.mjs` (Chromium via Playwright, median of three cold loads, no cache). Desktop: 1280×800, no throttling. Mobile: 375×812, 4× CPU slowdown, 1.6 Mbps down / 750 kbps up, 150 ms round trip. Lab numbers on a fast laptop; field data from real visitors will differ. INP needs real interactions and is not measured.
+
+| Profile | Page           |   TTFB |    FCP |    LCP |   CLS |  TBT | JS (transfer) | Total (transfer) |
+| ------- | -------------- | -----: | -----: | -----: | ----: | ---: | ------------: | ---------------: |
+| Desktop | Home           |  14 ms |  36 ms |  36 ms | 0.000 | 0 ms |        138 KB |           336 KB |
+| Desktop | Explore search |  16 ms |  40 ms |  40 ms | 0.000 | 0 ms |        140 KB |           353 KB |
+| Desktop | Skill page     |  17 ms |  40 ms |  40 ms | 0.000 | 0 ms |        142 KB |           320 KB |
+| Desktop | Security tab   |   8 ms |  32 ms |  32 ms | 0.000 | 0 ms |        142 KB |           317 KB |
+| Mobile  | Home           | 151 ms | 564 ms | 564 ms | 0.047 | 2 ms |        138 KB |           318 KB |
+| Mobile  | Explore search | 151 ms | 540 ms | 540 ms | 0.012 | 4 ms |        140 KB |           317 KB |
+| Mobile  | Skill page     | 151 ms | 576 ms | 576 ms | 0.000 | 7 ms |        142 KB |           309 KB |
+| Mobile  | Security tab   | 151 ms | 568 ms | 568 ms | 0.000 | 4 ms |        142 KB |           303 KB |
+
+All pages are well inside the "good" thresholds (LCP under 2.5 s, CLS under 0.1) in these conditions.
+
 ## Other timings
 
 | Task                                               | Result                                                               |

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 import { GeistMono } from 'geist/font/mono';
 import { GeistSans } from 'geist/font/sans';
 import { hasDevFixtures } from '@skillxone/database';
@@ -36,6 +37,8 @@ async function devFixturesPresent(): Promise<boolean> {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const showFixtureBanner = await devFixturesPresent();
+  // Set by proxy.ts; the inline theme script must carry it to run under the CSP.
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
 
   return (
     <html
@@ -44,7 +47,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       suppressHydrationWarning
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="flex min-h-screen flex-col">
         <a

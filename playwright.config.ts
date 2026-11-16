@@ -37,5 +37,7 @@ export default defineConfig({
     url: `http://localhost:${PORT}/api/health`,
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
+    // Test accounts created by e2e/sessions.ts. Roles come from these allowlists on every request.
+    env: { ADMIN_GITHUB_IDS: '990000003', MODERATOR_GITHUB_IDS: '990000002' },
   },
 });

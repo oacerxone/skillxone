@@ -24,6 +24,9 @@ function databasePath(): string {
 
 export type Role = 'user' | 'moderator' | 'admin';
 
+/** A user stored as admin whose id is not on the allowlist (removed after signing in). */
+export type TestAccount = Role | 'revoked-admin';
+
 export interface TestSession {
   cookie: string;
   csrf: string;
@@ -33,17 +36,23 @@ export interface TestSession {
 const csrfFor = (secret: string) =>
   createHmac('sha256', secret).update('skillxone-csrf-v1').digest('base64url');
 
-export function createTestSession(role: Role): TestSession {
+export function createTestSession(account: TestAccount): TestSession {
+  const role: Role = account === 'revoked-admin' ? 'admin' : account;
   const db = new Database(databasePath());
   try {
     db.pragma('busy_timeout = 5000');
-    const githubId = { user: 990_000_001, moderator: 990_000_002, admin: 990_000_003 }[role];
+    const githubId = {
+      user: 990_000_001,
+      moderator: 990_000_002,
+      admin: 990_000_003,
+      'revoked-admin': 990_000_004,
+    }[account];
     const now = new Date().toISOString();
-    const userId = `e2e_user_${role}`;
+    const userId = `e2e_user_${account}`;
     db.prepare(
       `insert into users (id, github_id, login, role, created_at, last_login_at) values (?, ?, ?, ?, ?, ?)
        on conflict(github_id) do update set role = excluded.role, is_disabled = 0`,
-    ).run(userId, githubId, `e2e-${role}`, role, now, now);
+    ).run(userId, githubId, `e2e-${account}`, role, now, now);
     const token = randomBytes(32).toString('base64url');
     const csrfSecret = randomBytes(32).toString('base64url');
     db.prepare(

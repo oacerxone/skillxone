@@ -143,6 +143,8 @@ Status: done, with one item not run here. Following [the VPS guide](deployment/v
 
 Acceptance: all suites green; no open critical or high issues from the review; measured numbers published in the docs with the test conditions.
 
+Status: done. Review: [platform-review.md](security/platform-review.md) (two medium findings fixed: a missing CSP and stale admin roles; the remaining accepted risks are listed). Load and Core Web Vitals: [measurements.md](deployment/measurements.md). Troubleshooting: [troubleshooting.md](troubleshooting.md). [CHANGELOG](../CHANGELOG.md). Tagged `v0.1.0-beta` locally, not pushed.
+
 ## Deferred beyond beta
 
 Custom `skillforge` CLI, dynamic analysis sandbox, webhooks, non-GitHub sources, user accounts beyond admin and optional login, reviews and ratings.

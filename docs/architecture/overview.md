@@ -216,9 +216,9 @@ Detailed policy is in [verification-policy.md](../security/verification-policy.m
 - Submitted URLs must parse to `https://github.com/<owner>/<repo>` with a strict character set. The server never fetches a user-supplied URL; it calls the GitHub API with the parsed owner and repo, which removes the SSRF surface.
 - SQL only through Kysely's parameterised builder. Shell commands are generated as argument arrays and quoted by one tested function; the web app never executes them.
 - Admin: GitHub OAuth, allowlist of numeric GitHub user ids in the environment, `HttpOnly; Secure; SameSite=Lax` session cookie, CSRF token on every mutating request, every action written to `audit_logs`.
-- Public write endpoints: Zod validation, per-IP token bucket in memory, body size limits.
-- Headers: CSP with nonces, HSTS, `X-Content-Type-Options`, `Referrer-Policy`, `frame-ancestors 'none'`.
-- Tokens are read from the environment, never logged (logger redaction list), never returned by any endpoint.
+- Public write endpoints: strict hand-written validation (`apps/web/lib/community-api.ts`), JSON-only bodies capped at 8 KiB, a per-client token bucket in memory (shared when no trusted proxy identifies clients), same-origin checks, and a CSRF token whenever a session cookie is present.
+- Headers: CSP with a per-request nonce and `'strict-dynamic'` (`apps/web/proxy.ts`), `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options` and `frame-ancestors 'none'`; HSTS is set by the reverse proxy configs.
+- Tokens are read from the environment and never logged or returned. There is no logger with a redaction list; instead no code path passes a token to a log call (the OAuth token is used once and dropped; the GitHub token lives only in request headers).
 - Webhooks are not used in the first release. If added, HMAC-SHA256 signature verification with constant-time comparison is mandatory.
 
 ## 10. Decisions needing approval
