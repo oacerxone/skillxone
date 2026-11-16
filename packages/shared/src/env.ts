@@ -24,6 +24,20 @@ const envSchema = z.object({
     .transform((v) => (v ? v : undefined)),
   WORKER_CONCURRENCY: positiveInt(4),
   SCAN_CONCURRENCY: positiveInt(1),
+  /** Wall-clock limit per scan; a scan that exceeds it is FAILED, never passed. */
+  SCAN_TIMEOUT_SECONDS: z.coerce.number().int().min(5).max(600).default(60),
+  /** Days a verification stays valid before a rescan is required. */
+  VERIFICATION_DAYS: z.coerce.number().int().min(1).max(365).default(30),
+  /** Look up dependency vulnerabilities in OSV.dev. When 0, the check is recorded as skipped. */
+  OSV_LOOKUPS: z
+    .enum(['0', '1'])
+    .default('1')
+    .transform((v) => v === '1'),
+  /** Absolute path to a gitleaks binary; when unset, PATH is searched. */
+  GITLEAKS_PATH: z
+    .string()
+    .optional()
+    .transform((v) => (v ? v : undefined)),
   ALLOW_DEV_FIXTURES: z
     .enum(['0', '1'])
     .default('0')

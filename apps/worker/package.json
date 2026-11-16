@@ -11,6 +11,7 @@
     "@skillxone/github": "workspace:*",
     "@skillxone/ranking": "workspace:*",
     "@skillxone/search": "workspace:*",
+    "@skillxone/security": "workspace:*",
     "@skillxone/shared": "workspace:*",
     "@skillxone/skill-parser": "workspace:*"
   }

@@ -35,6 +35,7 @@ All four of `lint`, `typecheck`, `test` and `build` must pass before a change is
 | `packages/skill-parser` | Pure functions: locate skills, parse `SKILL.md`, content hash. No I/O.                                    |
 | `packages/search`       | Search backends. The only place with dialect-specific SQL besides the connection code.                    |
 | `packages/ranking`      | Pure scoring functions. No I/O.                                                                           |
+| `packages/security`     | Static scanners, rule engine and the verification policy as code. Reads stored text; executes nothing.    |
 | `packages/ui`           | Design tokens and (later) presentational components.                                                      |
 
 ## Rules that are enforced

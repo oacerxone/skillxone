@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   createJobQueue,
@@ -10,162 +9,18 @@ import {
 } from '@skillxone/database';
 import type { DatabaseHandle } from '@skillxone/database';
 import { GitHubClient, RateLimitError } from '@skillxone/github';
-import type { FetchLike } from '@skillxone/github';
 import { createSearchBackend } from '@skillxone/search';
 import { computeContentHash } from '@skillxone/skill-parser';
+import { createDefaultScanners } from '@skillxone/security';
 import { createProcessors, runDiscovery, runRanking } from './processors';
 import { drainQueue } from './runner';
 import { syncRepository } from './sync';
 import type { SyncDeps } from './sync';
+import { FakeGitHub, skillMd } from './test-support';
+import type { FakeRepo } from './test-support';
 
-const sha1 = (text: string) => createHash('sha1').update(text).digest('hex');
-const skillMd = (name: string, description = `Does ${name} things.`) =>
-  `---\nname: ${name}\ndescription: ${description}\n---\n# ${name}\n\nInstructions.\n`;
-
-interface FakeRepo {
-  id: number;
-  owner: string;
-  ownerId: number;
-  name: string;
-  stars: number;
-  private?: boolean;
-  archived?: boolean;
-  files: Record<string, string>;
-  modes?: Record<string, string>;
-}
-
-/** An in-memory stand-in for api.github.com and raw.githubusercontent.com. */
-class FakeGitHub {
-  repos: FakeRepo[] = [];
-  /** Old `owner/name` (lowercase) -> repository id, to emulate GitHub's rename redirects. */
-  redirects = new Map<string, number>();
-  apiCalls: string[] = [];
-  rawCalls: string[] = [];
-  rateLimited = false;
-  truncateRecursive = false;
-
-  head(repo: FakeRepo) {
-    return sha1(JSON.stringify([repo.files, repo.modes ?? {}]));
-  }
-  private etag(repo: FakeRepo) {
-    return `"${sha1(JSON.stringify([repo.owner, repo.ownerId, repo.name, repo.stars, repo.archived, this.head(repo)]))}"`;
-  }
-  private find(owner: string, name: string) {
-    const key = `${owner}/${name}`.toLowerCase();
-    return (
-      this.repos.find((r) => `${r.owner}/${r.name}`.toLowerCase() === key) ??
-      this.repos.find((r) => r.id === this.redirects.get(key))
-    );
-  }
-  private treeItems(repo: FakeRepo, prefix: string, recursive: boolean) {
-    const items = new Map<
-      string,
-      { path: string; mode: string; type: string; sha: string; size?: number }
-    >();
-    for (const [path, content] of Object.entries(repo.files)) {
-      if (!path.startsWith(prefix)) continue;
-      const rest = path.slice(prefix.length);
-      const segments = rest.split('/');
-      if (recursive || segments.length === 1) {
-        items.set(rest, {
-          path: rest,
-          mode: repo.modes?.[path] ?? '100644',
-          type: 'blob',
-          sha: sha1(`blob:${content}`),
-          size: Buffer.byteLength(content),
-        });
-      }
-      if (!recursive && segments.length > 1) {
-        const dir = segments[0]!;
-        items.set(dir, {
-          path: dir,
-          mode: '040000',
-          type: 'tree',
-          sha: sha1(`tree:${prefix}${dir}/`),
-        });
-      }
-    }
-    return [...items.values()];
-  }
-
-  fetch: FetchLike = async (url, init) => {
-    const headers = (init?.headers ?? {}) as Record<string, string>;
-    const { hostname, pathname, searchParams } = new URL(url);
-    const parts = pathname.split('/').filter(Boolean).map(decodeURIComponent);
-
-    if (hostname === 'raw.githubusercontent.com') {
-      this.rawCalls.push(pathname);
-      const [owner, name, commit, ...rest] = parts;
-      const repo = this.find(owner!, name!);
-      const content = repo && commit === this.head(repo) ? repo.files[rest.join('/')] : undefined;
-      return content === undefined ? new Response('', { status: 404 }) : new Response(content);
-    }
-
-    this.apiCalls.push(pathname);
-    if (this.rateLimited) {
-      return new Response('{}', {
-        status: 403,
-        headers: {
-          'x-ratelimit-remaining': '0',
-          'x-ratelimit-reset': String(Math.floor(Date.now() / 1000) + 3600),
-        },
-      });
-    }
-    const [, owner, name, ...rest] = parts;
-    const repo = this.find(owner!, name!);
-    if (!repo) return Response.json({ message: 'Not Found' }, { status: 404 });
-
-    if (rest.length === 0) {
-      if (headers['If-None-Match'] === this.etag(repo)) return new Response(null, { status: 304 });
-      return Response.json(
-        {
-          id: repo.id,
-          owner: { login: repo.owner, id: repo.ownerId, type: 'Organization' },
-          name: repo.name,
-          full_name: `${repo.owner}/${repo.name}`,
-          description: 'A fake repository',
-          homepage: null,
-          default_branch: 'main',
-          stargazers_count: repo.stars,
-          forks_count: 3,
-          open_issues_count: 1,
-          archived: repo.archived ?? false,
-          disabled: false,
-          fork: false,
-          private: repo.private ?? false,
-          pushed_at: '2026-05-01T00:00:00Z',
-          created_at: '2025-01-01T00:00:00Z',
-          license: { spdx_id: 'MIT' },
-        },
-        { headers: { etag: this.etag(repo) } },
-      );
-    }
-    if (rest[0] === 'commits') return new Response(this.head(repo));
-    if (rest[0] === 'git' && rest[1] === 'trees') {
-      const sha = rest[2]!;
-      const recursive = searchParams.get('recursive') === '1';
-      if (sha === this.head(repo)) {
-        if (recursive && this.truncateRecursive) {
-          return Response.json({
-            sha,
-            truncated: true,
-            tree: this.treeItems(repo, '', true).slice(0, 1),
-          });
-        }
-        return Response.json({ sha, truncated: false, tree: this.treeItems(repo, '', recursive) });
-      }
-      const dirs = new Set(
-        Object.keys(repo.files)
-          .filter((p) => p.includes('/'))
-          .map((p) => `${p.split('/')[0]}/`),
-      );
-      const prefix = [...dirs].find((dir) => sha1(`tree:${dir}`) === sha);
-      if (prefix)
-        return Response.json({ sha, truncated: false, tree: this.treeItems(repo, prefix, true) });
-    }
-    return Response.json({ message: 'Not Found' }, { status: 404 });
-  };
-}
+/** Scanners without network lookups, so tests never call OSV.dev. */
+const OFFLINE_SCAN = { scanners: createDefaultScanners({ osv: null, gitleaksBinary: null }) };
 
 let handle: DatabaseHandle;
 let github: FakeGitHub;
@@ -604,9 +459,14 @@ describe('discovery and the queue', () => {
   it('drains discovery through to indexed skills', async () => {
     github.repos.push(repo());
     await deps.queue.enqueue('discover', { provider: 'seed' });
-    const summary = await drainQueue(deps.queue, createProcessors(deps, seeds), { workerId: 'w' });
-    // discover -> sync_repo -> index_repo + rank
-    expect(summary).toMatchObject({ succeeded: 4, dead: 0, retried: 0 });
+    const summary = await drainQueue(
+      deps.queue,
+      createProcessors({ ...deps, scan: OFFLINE_SCAN }, seeds),
+      { workerId: 'w' },
+    );
+    // discover -> sync_repo -> index_repo + rank + one scan per skill
+    expect(summary).toMatchObject({ dead: 0, retried: 0 });
+    expect(summary.succeeded).toBeGreaterThanOrEqual(6);
     expect((await listSkills(handle.db)).total).toBe(2);
     // The new skills are searchable and ranked without any further step.
     const search = createSearchBackend(handle);
@@ -614,15 +474,28 @@ describe('discovery and the queue', () => {
     expect(await search.search('alpha')).toHaveLength(1);
     const ranked = await listSkills(handle.db);
     expect(ranked.items.every((s) => s.quality !== null && s.quality > 0)).toBe(true);
-    // scan jobs wait for a worker that knows how to run them
-    expect(await queuedScans()).toBe(2);
+    // Both skills were assessed: no blocking findings, so verified under the policy.
+    const states = await handle.db
+      .selectFrom('skills')
+      .select(['name', 'verification_state', 'lifecycle_state'])
+      .orderBy('name')
+      .execute();
+    expect(states).toEqual([
+      { name: 'alpha', verification_state: 'VERIFIED', lifecycle_state: 'COMPLETE' },
+      { name: 'beta', verification_state: 'VERIFIED', lifecycle_state: 'COMPLETE' },
+    ]);
+    expect(await deps.queue.counts()).not.toHaveProperty('queued');
   });
 
   it('parks sync jobs when GitHub is rate limited', async () => {
     github.repos.push(repo());
     github.rateLimited = true;
     await runDiscovery(deps, seeds, 'seed');
-    const summary = await drainQueue(deps.queue, createProcessors(deps, seeds), { workerId: 'w' });
+    const summary = await drainQueue(
+      deps.queue,
+      createProcessors({ ...deps, scan: OFFLINE_SCAN }, seeds),
+      { workerId: 'w' },
+    );
     expect(summary).toMatchObject({ deferred: 1, dead: 0, retried: 0 });
     const job = await handle.db
       .selectFrom('sync_jobs')
@@ -644,7 +517,11 @@ describe('discovery and the queue', () => {
 
   it('rejects a queued payload that does not name a valid repository', async () => {
     await deps.queue.enqueue('sync_repo', { owner: '../..', repo: 'x' }, { maxAttempts: 1 });
-    const summary = await drainQueue(deps.queue, createProcessors(deps, seeds), { workerId: 'w' });
+    const summary = await drainQueue(
+      deps.queue,
+      createProcessors({ ...deps, scan: OFFLINE_SCAN }, seeds),
+      { workerId: 'w' },
+    );
     expect(summary.dead).toBe(1);
     expect(github.apiCalls).toHaveLength(0);
   });

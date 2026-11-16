@@ -90,9 +90,37 @@ function SecurityTab({
       <div className="panel p-4">
         <h2 className="text-[16px] font-semibold leading-6">No assessment for this version</h2>
         <p className="mt-1 max-w-2xl text-[13px] leading-5 text-text-muted">
-          The current version has not been scanned yet, so it is shown as Unverified. That is the
-          absence of an assessment, not a finding. Review the source before installing.
+          {skill.lifecycleState === 'SCANNING'
+            ? 'The current version is being scanned now. '
+            : 'The current version has not been scanned yet; it is queued. '}
+          Until then it is shown as Unverified. That is the absence of an assessment, not a finding.
+          Review the source before installing.
         </p>
+      </div>
+    );
+  }
+
+  if (report.scan.status === 'FAILED') {
+    return (
+      <div className="panel p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <h2 className="text-[16px] font-semibold leading-6">
+            The last assessment did not complete
+          </h2>
+          <VerificationBadge state={skill.verificationState} />
+        </div>
+        <p className="mt-1 max-w-2xl text-[13px] leading-5 text-text-muted">
+          A scan that fails or runs out of time is never counted as a pass, so this version is
+          Unverified. It will be retried.
+        </p>
+        <dl className="mt-3 max-w-2xl text-[13px] leading-5">
+          <Meta label="Commit">
+            <code className="font-mono text-[12px]">{report.scan.commit_sha}</code>
+          </Meta>
+          <Meta label="Attempted">{formatDate(report.scan.finished_at)}</Meta>
+          <Meta label="Reason">{report.scan.error ?? 'Unknown error'}</Meta>
+          <Meta label="Scanner version">{report.scan.scanner_version}</Meta>
+        </dl>
       </div>
     );
   }
@@ -124,6 +152,10 @@ function SecurityTab({
           <Meta label="Scanned">{formatDate(report.scan.finished_at)}</Meta>
           <Meta label="Scanner version">{report.scan.scanner_version}</Meta>
           <Meta label="Policy version">{report.scan.policy_version}</Meta>
+          {skill.verification?.note && <Meta label="Decision">{skill.verification.note}</Meta>}
+          {skill.lifecycleState === 'EXPIRED' && (
+            <Meta label="Status">Verification expired; a rescan is queued.</Meta>
+          )}
           <Meta label="Verification expires">
             {skill.verification?.expires_at
               ? formatDate(skill.verification.expires_at)
@@ -152,6 +184,13 @@ function SecurityTab({
                     {finding.severity}
                   </span>
                   <code className="font-mono text-[12px]">{finding.rule_id}</code>
+                  {finding.status !== 'open' && (
+                    <span className="rounded-sm border border-border px-1.5 py-0.5 text-[12px] leading-4 text-text-muted">
+                      {finding.status === 'false_positive'
+                        ? 'Reviewed: false positive'
+                        : 'Reviewed: accepted'}
+                    </span>
+                  )}
                   {finding.file_path && (
                     <a
                       href={fileUrl(finding.file_path, finding.line_start)}
@@ -173,6 +212,12 @@ function SecurityTab({
                   <span className="font-medium text-text">Suggested fix: </span>
                   {finding.remediation}
                 </p>
+                {finding.review_note && (
+                  <p className="mt-2 text-text-muted">
+                    <span className="font-medium text-text">Reviewer note: </span>
+                    {finding.review_note}
+                  </p>
+                )}
                 <p className="mt-2">
                   <Link
                     href={`/report?skill=${encodeURIComponent(skill.slug)}&type=false_positive&finding=${encodeURIComponent(finding.id)}`}
@@ -204,7 +249,9 @@ function SecurityTab({
             <ul className="mt-2 list-disc pl-5 text-[13px] leading-6">
               {report.checksSkipped.map((check) => (
                 <li key={check.scanner}>
-                  {check.scanner}: <span className="text-text-muted">{check.reason}</span>
+                  {check.scanner}
+                  {check.required ? ' (required)' : ''}:{' '}
+                  <span className="text-text-muted">{check.reason}</span>
                 </li>
               ))}
             </ul>

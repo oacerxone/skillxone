@@ -415,7 +415,7 @@ export interface SecurityReport {
   scan: Selectable<SecurityScansTable>;
   findings: Array<Selectable<SecurityFindingsTable>>;
   checksRun: Array<{ scanner: string; version?: string }>;
-  checksSkipped: Array<{ scanner: string; reason: string }>;
+  checksSkipped: Array<{ scanner: string; reason: string; required?: boolean }>;
 }
 
 export interface SkillDetail extends SkillListItem {
@@ -546,7 +546,9 @@ export async function getSkillBySlug(db: Db, slug: string): Promise<SkillDetail 
       .selectFrom('security_scans')
       .selectAll()
       .where('version_id', '=', currentRow.id)
-      .where('status', '=', 'COMPLETE')
+      // The latest finished assessment, including a failed one: a failure is shown, not hidden.
+      .where('status', 'in', ['COMPLETE', 'FAILED'])
+      .orderBy('finished_at', 'desc')
       .orderBy('created_at', 'desc')
       .executeTakeFirst();
     if (scan) {

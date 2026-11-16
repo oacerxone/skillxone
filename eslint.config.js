@@ -14,6 +14,7 @@ const allowedInternalImports = {
   'skill-parser': ['shared'],
   github: ['shared'],
   ranking: ['shared'],
+  security: ['shared'],
   search: ['shared', 'database'],
 };
 

@@ -17,9 +17,12 @@ import type { DiscoveryProvider, RepoCandidate } from '@skillxone/github';
 import { DEFAULT_WEIGHTS, computeRanking } from '@skillxone/ranking';
 import type { RankingWeights } from '@skillxone/ranking';
 import { createSearchBackend } from '@skillxone/search';
+import { createDefaultScanners, createOsvClient } from '@skillxone/security';
+import type { Scanner } from '@skillxone/security';
 import { findWorkspaceRoot } from '@skillxone/shared';
 import { baseProcessors } from './runner';
 import type { ProcessorRegistry } from './runner';
+import { enqueueMissingScans, expireVerifications, scanVersion } from './scan';
 import { syncRepository } from './sync';
 import type { SyncDeps } from './sync';
 
@@ -140,13 +143,46 @@ export async function runRanking(
   };
 }
 
+export interface ScanSettings {
+  scanners?: readonly Scanner[];
+  timeoutMs?: number;
+  verificationDays?: number;
+}
+
 export function createProcessors(
-  deps: SyncDeps & { dialect?: DatabaseHandle['dialect'] },
+  deps: SyncDeps & { dialect?: DatabaseHandle['dialect']; scan?: ScanSettings },
   seeds: SeedFile = loadSeedFile(),
 ): ProcessorRegistry {
   const search = createSearchBackend({ db: deps.db, dialect: deps.dialect ?? 'sqlite' });
+  const scanDeps = {
+    db: deps.db,
+    queue: deps.queue,
+    now: deps.now,
+    scanners: deps.scan?.scanners ?? createDefaultScanners({ osv: createOsvClient() }),
+    timeoutMs: deps.scan?.timeoutMs,
+    verificationDays: deps.scan?.verificationDays,
+  };
   return {
     ...baseProcessors,
+
+    /** Static security assessment of one skill version (never executes its files). */
+    async scan_skill(payload) {
+      const data = payload as { skillId?: unknown; versionId?: unknown; force?: unknown };
+      if (typeof data.skillId !== 'string' || typeof data.versionId !== 'string') {
+        throw new Error('scan_skill payload needs a skillId and a versionId');
+      }
+      return scanVersion(
+        scanDeps,
+        { skillId: data.skillId, versionId: data.versionId },
+        { force: data.force === true },
+      );
+    },
+
+    /** End verifications past their expiry and queue rescans. */
+    expire_verifications: () => expireVerifications(scanDeps),
+
+    /** Queue scans for current versions not yet assessed by this scanner and policy. */
+    enqueue_scans: () => enqueueMissingScans(scanDeps),
 
     /** Recompute ranking scores for the whole catalog. */
     rank: () => runRanking(deps.db, deps.now()),

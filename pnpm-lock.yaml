@@ -123,6 +123,9 @@ importers:
       '@skillxone/search':
         specifier: workspace:*
         version: link:../../packages/search
+      '@skillxone/security':
+        specifier: workspace:*
+        version: link:../../packages/security
       '@skillxone/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -182,6 +185,12 @@ importers:
       better-sqlite3:
         specifier: ^13.2.0
         version: 13.2.0
+
+  packages/security:
+    dependencies:
+      '@skillxone/shared':
+        specifier: workspace:*
+        version: link:../shared
 
   packages/shared:
     dependencies:

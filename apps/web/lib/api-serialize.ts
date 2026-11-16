@@ -61,10 +61,19 @@ export function serializeSecurity(skill: SkillDetail) {
     verification: skill.verificationState,
     lifecycle: skill.lifecycleState,
     expiresAt: skill.verification?.expires_at ?? null,
+    decision: skill.verification
+      ? {
+          reason: skill.verification.reason,
+          summary: skill.verification.note,
+          decidedAt: skill.verification.valid_from,
+        }
+      : null,
     report: report
       ? {
           commitSha: report.scan.commit_sha,
           contentHash: report.scan.content_hash,
+          status: report.scan.status,
+          error: report.scan.error,
           scannedAt: report.scan.finished_at,
           scannerVersion: report.scan.scanner_version,
           policyVersion: report.scan.policy_version,
@@ -83,6 +92,7 @@ export function serializeSecurity(skill: SkillDetail) {
             explanation: finding.explanation,
             remediation: finding.remediation,
             status: finding.status,
+            reviewNote: finding.review_note,
           })),
         }
       : null,

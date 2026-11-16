@@ -4,7 +4,7 @@ Each phase ends with a report (files changed, features, tests run with results, 
 
 Standing checks for every phase from 1 onward: `pnpm lint`, `pnpm typecheck`, `pnpm test` and `pnpm build` pass locally and in CI.
 
-## Phase 0 — Research and architecture (this phase)
+## Phase 0 — Research and architecture
 
 Deliverables: [overview](architecture/overview.md), [decisions](architecture/decisions.md), [database schema](architecture/database-schema.md), [verification policy](security/verification-policy.md), [design system](architecture/design-system.md), this roadmap.
 
@@ -78,6 +78,8 @@ Acceptance:
 - Timeout test produces FAILED, not VERIFIED. Pathological-input test stays within the time budget.
 - OSV adapter tested against recorded responses and an unreachable-service case (recorded as skipped).
 - A scan of the live seed catalog completes; a sample of findings is reviewed by hand and the false-positive rate of that sample is reported.
+
+Status: done. Rules: [security/rules.md](security/rules.md). Live review: [security/live-catalog-review.md](security/live-catalog-review.md). Periodic `enqueue_scans` and `expire_verifications` runs are wired up in Phase 7 (schedules); until then run `pnpm worker scan --queue` and `pnpm worker expire-verifications`.
 
 ## Phase 6 — Installation support
 

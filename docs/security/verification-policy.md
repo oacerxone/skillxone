@@ -1,6 +1,6 @@
 # Verification policy
 
-Policy version: **0.1-draft** (proposed, Phase 0). Published with the site; every report names the policy version it was judged under.
+Policy version: **0.1-draft** (proposed in Phase 0, implemented in Phase 5 in `packages/security/src/policy.ts`). Published with the site; every report names the policy version it was judged under. The full rule list is in [rules.md](rules.md).
 
 ## What the labels mean
 
@@ -81,6 +81,17 @@ Not part of this policy and not shipped in the beta. The `Scanner` interface all
 3. A fingerprint marked false positive stays suppressed for that skill across rescans until the matched content changes.
 4. Rule changes go through pull request with required review from a security maintainer (CODEOWNERS on `packages/security/`).
 5. Every decision is written to `audit_logs` and shown in the skill's verification history.
+
+## Implementation notes (Phase 5)
+
+- **Scanner version.** `skillxone-scan-1.0.0`. Bumping it makes every current version eligible for reassessment (`pnpm worker scan --queue`, or the `enqueue_scans` job).
+- **Rescans of the same identity.** A scan is identified by (version, scanner version, policy version). Rescanning that identity, after expiry or a reviewer's decision, replaces the scan's findings in place and carries review notes over by fingerprint. Each decision is kept separately in `verification_records`.
+- **Optional gitleaks.** Not a required check, so verification never depends on an optional tool. The built-in credential scanner is required.
+- **Unsupported manifests.** A dependency manifest that the scanner cannot parse yet (for example `go.mod`) records the required dependency check as skipped. The result is Unverified, never a silent pass.
+- **Context lowers severity, never removes a finding.** See [rules.md](rules.md#how-context-changes-severity) for the contexts and their known weakness.
+- **Ownership change.** The rescan after a transfer adds `INT-OWNER-CHANGED` (`medium`). The finding stays until a maintainer accepts it.
+- **Old versions.** A scan job for a version that is no longer current is skipped. Only the current version's state is shown.
+- **Measured accuracy.** See [live-catalog-review.md](live-catalog-review.md).
 
 ## Honest limits
 

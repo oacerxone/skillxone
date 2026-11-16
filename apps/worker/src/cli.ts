@@ -15,6 +15,7 @@ import { EnvError, loadRootEnvFile, parseEnv } from '@skillxone/shared';
 import type { Env } from '@skillxone/shared';
 import { GitHubClient, parseRepoRef } from '@skillxone/github';
 import { createSearchBackend } from '@skillxone/search';
+import { createDefaultScanners, createOsvClient } from '@skillxone/security';
 import {
   DISCOVERY_PROVIDERS,
   createProcessors,
@@ -24,6 +25,8 @@ import {
 } from './processors';
 import type { DiscoveryProviderId } from './processors';
 import { drainQueue } from './runner';
+import { enqueueMissingScans, expireVerifications, scanVersion } from './scan';
+import type { ScanDeps } from './scan';
 import { syncRepository } from './sync';
 import type { SyncDeps } from './sync';
 
@@ -42,6 +45,9 @@ Commands:
   rank                    Recompute quality and trend scores for every skill
   reindex                 Rebuild the search index (also repairs a damaged one)
   search-health           Check the search index
+  scan <owner/repo/skill> Assess one skill now and print the result (static analysis only)
+  scan --queue            Queue scans for every skill not yet assessed by this scanner version
+  expire-verifications    End expired verifications and queue their rescans
   enqueue <type>          Add a job  [--payload <json>] [--dedupe <key>] [--priority <n>]
   drain                   Run queued jobs until none are runnable, then exit  [--max <n>]
   help                    Show this message
@@ -58,6 +64,20 @@ function syncDeps(env: Env, handle: DatabaseHandle): SyncDeps {
     queue: createJobQueue(handle.db),
     now: () => new Date(),
     limits: { downloadConcurrency: env.WORKER_CONCURRENCY },
+  };
+}
+
+function scanDeps(env: Env, handle: DatabaseHandle): ScanDeps {
+  return {
+    db: handle.db,
+    queue: createJobQueue(handle.db),
+    now: () => new Date(),
+    scanners: createDefaultScanners({
+      osv: env.OSV_LOOKUPS ? createOsvClient({ userAgent: env.GITHUB_USER_AGENT }) : null,
+      gitleaksBinary: env.GITLEAKS_PATH,
+    }),
+    timeoutMs: env.SCAN_TIMEOUT_SECONDS * 1000,
+    verificationDays: env.VERIFICATION_DAYS,
   };
 }
 
@@ -167,6 +187,43 @@ const commands: Record<string, Command> = {
     if (!health.ok) process.exitCode = 1;
   },
 
+  async scan(args, { env, handle }) {
+    const { values, positionals } = parseArgs({
+      args,
+      allowPositionals: true,
+      options: { queue: { type: 'boolean' } },
+    });
+    const deps = scanDeps(env, handle);
+    if (values.queue) {
+      const result = await enqueueMissingScans(deps);
+      console.log(
+        `${result.candidates} skill(s) need assessment; ${result.enqueued} newly queued. Run \`pnpm worker drain\`.`,
+      );
+      return;
+    }
+    const slug = positionals[0]?.toLowerCase();
+    if (!slug || !/^[a-z0-9._-]+\/[a-z0-9._-]+\/[a-z0-9._-]+$/.test(slug)) {
+      throw new UsageError('scan requires a skill as owner/repo/skill, or --queue.');
+    }
+    const skill = await handle.db
+      .selectFrom('skills')
+      .select(['id', 'current_version_id'])
+      .where('slug', '=', slug)
+      .executeTakeFirst();
+    if (!skill?.current_version_id) throw new UsageError(`No indexed skill named ${slug}.`);
+    const summary = await scanVersion(
+      deps,
+      { skillId: skill.id, versionId: skill.current_version_id },
+      { force: true },
+    );
+    console.log(JSON.stringify(summary, null, 2));
+  },
+
+  async 'expire-verifications'(_args, { env, handle }) {
+    const result = await expireVerifications(scanDeps(env, handle));
+    console.log(`Expired ${result.expired} verification(s); rescans queued.`);
+  },
+
   async enqueue(args, { handle }) {
     const { values, positionals } = parseArgs({
       args,
@@ -216,7 +273,7 @@ const commands: Record<string, Command> = {
     const deps = syncDeps(env, handle);
     const summary = await drainQueue(
       deps.queue,
-      createProcessors({ ...deps, dialect: handle.dialect }),
+      createProcessors({ ...deps, dialect: handle.dialect, scan: scanDeps(env, handle) }),
       {
         workerId,
         maxJobs,
