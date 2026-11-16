@@ -1,0 +1,6 @@
+# Findings reviewed and accepted as false positives. One fingerprint per line
+# (commit:file:rule:line). Add a comment explaining each entry.
+
+# Synthetic test fixture for the CRED-PRIVATE-KEY scanner rule: the key body is generated
+# from randomChars() at test time and is not a real key.
+397b7d53458d1361dfda31be4a4acfc2eecd57fd:packages/security/src/rules.test.ts:private-key:211
