@@ -17,7 +17,7 @@ Acceptance: documents are mutually consistent; open decisions are listed; plan a
 - `apps/web` shell: layout, navigation, theme toggle, health endpoint. `apps/worker` CLI skeleton.
 - `.env.example`, env validation, `pnpm bootstrap` (install, copy env, migrate, load dev fixtures).
 - CI workflow: install, lint, typecheck, test, build. Actions pinned by commit SHA, read-only permissions.
-- Root files: README, LICENSE, CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, AGENTS.md, CLAUDE.md.
+- Root files: README, LICENSE, CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, AGENTS.md.
 
 Acceptance:
 
