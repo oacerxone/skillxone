@@ -6,6 +6,7 @@ import {
   metricsHistoryDays,
 } from '@skillxone/database';
 import { HeroIllustration } from '@/components/hero-illustration';
+import { ArrowRightIcon } from '@/components/icons';
 import { Section } from '@/components/page-parts';
 import { EmptyState, SkillList } from '@/components/skill-list';
 import { getDatabase } from '@/lib/db';
@@ -127,6 +128,18 @@ export default async function HomePage() {
               </li>
             </ul>
           </div>
+
+          <Link
+            href="/get-skill"
+            className="reveal group mt-6 inline-flex items-center gap-2 rounded-full border border-border bg-bg/70 py-1 pl-1 pr-3 text-[13px] text-text-muted transition-colors hover:border-accent hover:text-text"
+            style={{ '--i': 5 } as React.CSSProperties}
+          >
+            <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold text-accent-fg">
+              New
+            </span>
+            Give Claude Code or Codex the whole verified catalog
+            <ArrowRightIcon size={14} className="arrow-nudge" />
+          </Link>
 
           {totalSkills > 0 && (
             <dl

@@ -1,51 +1,52 @@
 import Link from 'next/link';
-import { primaryNav, secondaryNav } from '@/lib/navigation';
-import type { NavItem } from '@/lib/navigation';
+import { formatCount } from '@/lib/format';
+import { OWN_SKILL_PATH, primaryNav, REPOSITORY_URL, secondaryNav } from '@/lib/navigation';
+import { GitHubIcon, LogoMark, MenuIcon, SparklesIcon, StarIcon } from './icons';
 import { MobileMenu } from './mobile-menu';
+import { NavLinks } from './nav-links';
 import { ThemeToggle } from './theme-toggle';
 
-function NavLink({ item, className }: { item: NavItem; className: string }) {
-  if (item.external) {
-    return (
-      <a href={item.href} className={className} rel="noopener noreferrer">
-        {item.label}
-      </a>
-    );
-  }
+/** GitHub star button. The count is the stored value from the last sync, never fetched live. */
+export function StarButton({
+  stars,
+  className = '',
+}: {
+  stars: number | null;
+  className?: string;
+}) {
   return (
-    <Link href={item.href} className={className}>
-      {item.label}
-    </Link>
+    <a
+      href={REPOSITORY_URL}
+      rel="noopener noreferrer"
+      className={`star-btn ${className}`}
+      aria-label={
+        stars === null ? 'Star skillxone on GitHub' : `Star skillxone on GitHub, ${stars} stars`
+      }
+    >
+      <GitHubIcon size={15} />
+      <span className="star-btn-label">
+        <StarIcon size={12} className="star-icon" />
+        Star
+      </span>
+      {stars !== null && <span className="star-btn-count">{formatCount(stars)}</span>}
+    </a>
   );
 }
 
-const desktopLink =
-  'rounded-sm px-2 py-1 text-[13px] text-text-muted transition-colors duration-100 hover:text-text';
-const mobileLink = 'block rounded-sm px-3 py-2 text-text hover:bg-bg-muted';
-
-export function SiteHeader() {
+export function SiteHeader({ stars }: { stars: number | null }) {
   return (
-    <header className="header-glass sticky top-0 z-20 border-b border-border">
-      <div className="mx-auto flex h-12 max-w-[1200px] items-center gap-4 px-4">
-        <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight text-text">
-          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18">
-            <rect x="1" y="1" width="16" height="16" rx="4" fill="var(--accent)" />
-            <path
-              d="M5.5 6.5 9 4.5l3.5 2M5.5 9.5 9 11.5l3.5-2M5.5 12.5 9 14.5"
-              fill="none"
-              stroke="var(--accent-fg)"
-              strokeWidth="1.3"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          skillxone
+    <header className="site-header header-glass sticky top-0 z-20">
+      <div className="mx-auto flex h-14 max-w-[1200px] items-center gap-3 px-4">
+        <Link href="/" className="brand group flex shrink-0 items-center gap-2.5">
+          <LogoMark size={28} className="brand-mark" />
+          <span className="text-[15px] font-semibold tracking-[-0.01em] text-text">skillxone</span>
+          <span className="beta-pill" aria-hidden="true">
+            beta
+          </span>
         </Link>
 
-        <nav aria-label="Primary" className="hidden flex-1 items-center gap-1 md:flex">
-          {primaryNav.map((item) => (
-            <NavLink key={item.href} item={item} className={desktopLink} />
-          ))}
+        <nav aria-label="Primary" className="nav-bar ml-3 hidden lg:flex">
+          <NavLinks items={primaryNav} variant="bar" />
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
@@ -54,7 +55,7 @@ export function SiteHeader() {
             method="get"
             role="search"
             aria-label="Site search"
-            className="hidden xl:block"
+            className="hidden 2xl:block"
           >
             <label htmlFor="header-q" className="sr-only">
               Search skills
@@ -67,27 +68,40 @@ export function SiteHeader() {
               autoComplete="off"
               maxLength={100}
               placeholder="Search skills  /"
-              className="input w-52"
+              className="input h-9 w-44"
             />
           </form>
+          <StarButton stars={stars} className="hidden md:inline-flex" />
+          <Link
+            href={OWN_SKILL_PATH}
+            className="btn btn-primary btn-shine hidden h-9 gap-1.5 sm:inline-flex"
+          >
+            <SparklesIcon size={15} />
+            Get the skill
+          </Link>
           <ThemeToggle />
 
-          <MobileMenu>
-            <nav
-              aria-label="Menu"
-              className="absolute right-0 mt-2 w-56 rounded-lg border border-border bg-bg p-1 shadow-lg"
-            >
-              {primaryNav.map((item) => (
-                <NavLink key={item.href} item={item} className={mobileLink} />
-              ))}
+          <MobileMenu
+            summary={
+              <>
+                <MenuIcon size={15} />
+                Menu
+              </>
+            }
+          >
+            <nav aria-label="Menu" className="menu-panel">
+              <NavLinks items={primaryNav} variant="menu" />
               <hr className="my-1 border-border" />
-              {secondaryNav.map((item) => (
-                <NavLink key={item.href} item={item} className={mobileLink} />
-              ))}
+              <NavLinks items={secondaryNav} variant="menu" />
+              <a href={REPOSITORY_URL} className="menu-link" rel="noopener noreferrer">
+                <GitHubIcon size={15} className="nav-icon" />
+                <span>GitHub</span>
+              </a>
             </nav>
           </MobileMenu>
         </div>
       </div>
+      <div className="header-line" aria-hidden="true" />
     </header>
   );
 }

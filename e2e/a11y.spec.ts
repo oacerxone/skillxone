@@ -28,6 +28,7 @@ const PAGES = [
   ],
   ['skill versions', '/skills/example-fixture/starter-skills/commit-message-writer?tab=versions'],
   ['submit', '/submit'],
+  ['get the skill', '/get-skill'],
   ['report', '/report?skill=example-fixture%2Fops-skills%2Fremote-setup-helper'],
   ['docs', '/docs'],
   ['api docs', '/docs/api'],

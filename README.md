@@ -14,7 +14,7 @@ Discover, evaluate, verify and install **`SKILL.md` agent skills** for **Claude 
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](tsconfig.base.json)
 [![WCAG 2.2 AA](https://img.shields.io/badge/accessibility-WCAG%202.2%20AA-6f42c1)](docs/architecture/design-system.md)
 
-[Features](#features) · [Quick start](#quick-start) · [How verification works](#how-verification-works) · [Deployment](#deployment) · [API](#rest-api) · [Docs](#documentation) · [Contributing](#contributing)
+[Features](#features) · [Get the skill](#get-the-skillxone-skill) · [Quick start](#quick-start) · [How verification works](#how-verification-works) · [Deployment](#deployment) · [API](#rest-api) · [Docs](#documentation) · [Contributing](#contributing)
 
 <br />
 
@@ -56,6 +56,20 @@ Agent skills are folders of instructions and scripts that an AI coding agent loa
 <p align="center">
   <img alt="Skill detail page with rendered SKILL.md, Verified badge and an install panel that pins the verified commit" src="docs/images/skill-page.png" width="90%" />
 </p>
+
+## Get the skillxone skill
+
+Give **Claude Code** or **OpenAI Codex** the whole verified catalog with one install. Your agent can then search [skillxone.online](https://skillxone.online) and install only skills whose exact version passed the security policy, pinned to the scanned commit, after asking you first.
+
+```bash
+npx skills add oacerxone/skillxone --skill skillxone -a claude-code
+```
+
+```bash
+npx skills add oacerxone/skillxone --skill skillxone -a codex
+```
+
+Add `-g` to install for all projects. The skill's source is [skills/skillxone/SKILL.md](skills/skillxone/SKILL.md), and a test runs it through skillxone's own scanner and policy on every change. Setup guide: [skillxone.online/get-skill](https://skillxone.online/get-skill).
 
 ## Quick start
 

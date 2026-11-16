@@ -776,3 +776,22 @@ export async function getRepositorySummary(
     skillCount: Number(row.skill_count ?? 0),
   };
 }
+
+/**
+ * Stored star count for one repository, matched case-insensitively. Returns null when the
+ * repository has not been indexed, so callers can hide the number instead of guessing.
+ */
+export async function getRepositoryStars(
+  db: Db,
+  owner: string,
+  name: string,
+): Promise<number | null> {
+  const row = await db
+    .selectFrom('repositories')
+    .select('stars')
+    .where((eb) => eb(eb.fn('lower', ['owner']), '=', owner.toLowerCase()))
+    .where((eb) => eb(eb.fn('lower', ['name']), '=', name.toLowerCase()))
+    .where('status', 'in', ['active', 'archived'])
+    .executeTakeFirst();
+  return row ? Number(row.stars) : null;
+}

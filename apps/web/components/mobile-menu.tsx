@@ -7,7 +7,13 @@ import { useEffect, useRef } from 'react';
  * Mobile navigation as a native <details> disclosure, so it opens without JavaScript.
  * With JavaScript it also closes after navigating and when Escape is pressed.
  */
-export function MobileMenu({ children }: { children: React.ReactNode }) {
+export function MobileMenu({
+  children,
+  summary = 'Menu',
+}: {
+  children: React.ReactNode;
+  summary?: React.ReactNode;
+}) {
   const ref = useRef<HTMLDetailsElement>(null);
   const pathname = usePathname();
 
@@ -27,9 +33,9 @@ export function MobileMenu({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <details ref={ref} className="relative md:hidden">
-      <summary className="inline-flex h-8 cursor-pointer list-none items-center rounded-md border border-border px-3 text-[13px] text-text [&::-webkit-details-marker]:hidden">
-        Menu
+    <details ref={ref} className="relative lg:hidden">
+      <summary className="inline-flex h-9 cursor-pointer list-none items-center gap-1.5 rounded-md border border-border bg-bg/60 px-3 text-[13px] text-text transition-colors hover:bg-bg-muted [&::-webkit-details-marker]:hidden">
+        {summary}
       </summary>
       {children}
     </details>

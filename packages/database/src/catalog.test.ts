@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   getCategory,
   getCollection,
+  getRepositoryStars,
   getSkillBySlug,
   getSkillFile,
   likePattern,
@@ -202,5 +203,12 @@ describe('files, related skills and agents', () => {
   it('lists agents and reports no metrics history for fixtures', async () => {
     expect(await listAgentIds(handle.db)).toEqual(['claude-code', 'codex']);
     expect(await metricsHistoryDays(handle.db)).toBe(0);
+  });
+});
+
+describe('getRepositoryStars', () => {
+  it('returns stored stars case-insensitively, or null when not indexed', async () => {
+    expect(await getRepositoryStars(handle.db, 'Example-Fixture', 'OPS-skills')).toBe(312);
+    expect(await getRepositoryStars(handle.db, 'nobody', 'nothing')).toBeNull();
   });
 });

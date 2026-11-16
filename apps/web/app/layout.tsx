@@ -2,11 +2,12 @@ import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import { GeistMono } from 'geist/font/mono';
 import { GeistSans } from 'geist/font/sans';
-import { hasDevFixtures } from '@skillxone/database';
+import { getRepositoryStars, hasDevFixtures } from '@skillxone/database';
 import { SearchShortcut } from '@/components/search-shortcut';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
 import { getDatabase } from '@/lib/db';
+import { repositoryFullName } from '@/lib/navigation';
 import { THEME_STORAGE_KEY } from '@/lib/theme';
 import './globals.css';
 
@@ -35,8 +36,23 @@ async function devFixturesPresent(): Promise<boolean> {
   }
 }
 
+/** Stars of this project's own repository, from the last sync. Null when not indexed. */
+async function ownRepositoryStars(): Promise<number | null> {
+  const repo = repositoryFullName();
+  if (!repo) return null;
+  try {
+    const { db } = await getDatabase();
+    return await getRepositoryStars(db, repo[0], repo[1]);
+  } catch {
+    return null;
+  }
+}
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const showFixtureBanner = await devFixturesPresent();
+  const [showFixtureBanner, stars] = await Promise.all([
+    devFixturesPresent(),
+    ownRepositoryStars(),
+  ]);
   // Set by proxy.ts; the inline theme script must carry it to run under the CSP.
   const nonce = (await headers()).get('x-nonce') ?? undefined;
 
@@ -64,11 +80,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             Development data: the skills shown are fixtures, not real GitHub repositories.
           </p>
         )}
-        <SiteHeader />
+        <SiteHeader stars={stars} />
         <main id="main" className="mx-auto w-full max-w-[1200px] flex-1 px-4">
           {children}
         </main>
-        <SiteFooter />
+        <SiteFooter stars={stars} />
         <SearchShortcut />
       </body>
     </html>
