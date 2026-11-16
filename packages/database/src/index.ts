@@ -10,6 +10,7 @@ export * from './ranking-data';
 export * from './security';
 export * from './community';
 export { backupSqlite, restoreSqlite, verifySqliteFile } from './backup';
+export { writeTransaction } from './transaction';
 export { backoffDelayMs, createJobQueue, listJobs, pruneFinishedJobs, requeueJob } from './jobs';
 export type { EnqueueOptions, EnqueueResult, JobListItem, JobQueue, JobQueueOptions } from './jobs';
 export { DEFAULT_CATEGORIES, seedCategories } from './seed/categories';

@@ -1,5 +1,5 @@
 import { sql } from 'kysely';
-import { likePattern, searchTerms } from '@skillxone/database';
+import { likePattern, searchTerms, writeTransaction } from '@skillxone/database';
 import type { DatabaseHandle } from '@skillxone/database';
 
 /**
@@ -135,7 +135,7 @@ function fts5Backend(db: Db): SearchBackend {
     },
 
     async rebuild() {
-      await db.transaction().execute(async (trx) => {
+      await writeTransaction(db, async (trx) => {
         await sql`drop table if exists skills_fts`.execute(trx);
         await create(trx);
         await sql`insert into skills_fts (skill_id, name, description, owner, repo, categories, body) ${documentSelect}`.execute(
@@ -149,7 +149,7 @@ function fts5Backend(db: Db): SearchBackend {
 
     async indexRepository(repositoryId) {
       await create(db);
-      return db.transaction().execute(async (trx) => {
+      return writeTransaction(db, async (trx) => {
         await sql`delete from skills_fts where skill_id in (select id from skills where repository_id = ${repositoryId})`.execute(
           trx,
         );

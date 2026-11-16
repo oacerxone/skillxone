@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import type { Kysely, Transaction } from 'kysely';
 import { newId, toIso } from '@skillxone/shared';
 import type { Database, SkillFilesTable } from './types';
+import { writeTransaction } from './transaction';
 
 /**
  * Write side of ingestion. The worker fetches and parses; this module records the result.
@@ -58,7 +59,7 @@ export async function upsertRepository(
   const nowIso = toIso(now);
   const fullNameLower = `${input.owner}/${input.name}`.toLowerCase();
 
-  return db.transaction().execute(async (trx) => {
+  return writeTransaction(db, async (trx) => {
     const squatter = await trx
       .selectFrom('repositories')
       .select(['id', 'github_id'])
@@ -213,7 +214,7 @@ export async function recordRepositoryMissing(
   now: Date,
 ): Promise<'missing' | 'deleted'> {
   const nowIso = toIso(now);
-  return db.transaction().execute(async (trx) => {
+  return writeTransaction(db, async (trx) => {
     const repo = await trx
       .selectFrom('repositories')
       .select(['missing_count'])
@@ -400,7 +401,7 @@ export async function saveSkillSnapshot(
 ): Promise<SkillSnapshotResult> {
   const nowIso = toIso(now);
 
-  return db.transaction().execute(async (trx) => {
+  return writeTransaction(db, async (trx) => {
     let outcome: SkillSnapshotResult['outcome'] = 'unchanged';
     let skill = await trx
       .selectFrom('skills')
@@ -674,7 +675,7 @@ export async function revokeRepositoryVerifications(
   now: Date,
 ): Promise<Array<{ skillId: string; versionId: string }>> {
   const nowIso = toIso(now);
-  return db.transaction().execute(async (trx) => {
+  return writeTransaction(db, async (trx) => {
     const skills = await trx
       .selectFrom('skills')
       .select(['id', 'current_version_id'])

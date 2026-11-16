@@ -3,6 +3,7 @@ import type { Kysely } from 'kysely';
 import { toIso } from '@skillxone/shared';
 import type { VerificationState } from '@skillxone/shared';
 import type { Database } from './types';
+import { writeTransaction } from './transaction';
 
 /**
  * Data access for the ranking job: gathers the raw facts each signal needs and stores the
@@ -189,7 +190,7 @@ export interface RankingScoreInput {
 /** Replaces the stored scores. Runs in one transaction so readers never see a partial set. */
 export async function saveRankingScores(db: Db, scores: readonly RankingScoreInput[], now: Date) {
   const computedAt = toIso(now);
-  await db.transaction().execute(async (trx) => {
+  await writeTransaction(db, async (trx) => {
     for (let offset = 0; offset < scores.length; offset += 200) {
       const batch = scores.slice(offset, offset + 200);
       await trx

@@ -135,6 +135,8 @@ Acceptance:
 - Docker: image builds and health check passes. **Requires Docker, which is not installed on the current machine**; verified in CI instead, or reported as not run.
 - Backup and restore round trip tested.
 
+Status: done, with one item not run here. Following [the VPS guide](deployment/vps.md) verbatim from a fresh clone found and fixed three bugs: a `.gitignore` rule that had kept a source file out of git, an `.env.example` that failed its own validation, and a missing directory in the corepack step. After the fixes the build serves. Static export, backup and restore, and memory measurements are done ([measurements.md](deployment/measurements.md)). The Docker image is built and health-checked in CI only, because this machine has no Docker. The systemd, Caddy and Nginx files have not been run on a Linux server.
+
 ## Phase 10 — Hardening and beta
 
 - Security review of the platform against the threat list, dependency audit, load test on a representative catalog, Core Web Vitals measurement, full accessibility pass, complete end-to-end suite, troubleshooting guide, CHANGELOG, tagged `v0.1.0-beta`.

@@ -2,6 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import type { Kysely, Selectable, Transaction } from 'kysely';
 import { newId, toIso } from '@skillxone/shared';
 import type { AuditLogsTable, Database, ReportsTable, SubmissionsTable, UsersTable } from './types';
+import { writeTransaction } from './transaction';
 
 /**
  * Community input (submissions and reports), accounts, sessions, settings and the audit log.
@@ -256,7 +257,7 @@ export async function createSubmission(
   now: Date,
 ): Promise<{ submission: Submission; created: boolean; alreadyIndexed: boolean }> {
   const fullLower = `${input.owner}/${input.repo}`.toLowerCase();
-  return db.transaction().execute(async (trx) => {
+  return writeTransaction(db, async (trx) => {
     const repository = await trx
       .selectFrom('repositories')
       .select(['id', 'status'])
@@ -322,7 +323,7 @@ export async function reviewSubmission(
   },
   now: Date,
 ): Promise<Submission | null> {
-  return db.transaction().execute(async (trx) => {
+  return writeTransaction(db, async (trx) => {
     const before = await trx
       .selectFrom('submissions')
       .selectAll()
@@ -383,7 +384,7 @@ export async function createReport(
   input: ReportInput,
   now: Date,
 ): Promise<{ report: Report; created: boolean } | { error: 'unknown_skill' | 'unknown_finding' }> {
-  return db.transaction().execute(async (trx) => {
+  return writeTransaction(db, async (trx) => {
     let repositoryId: string | null = null;
     if (input.skillId) {
       const skill = await trx
@@ -475,7 +476,7 @@ export async function resolveReport(
   },
   now: Date,
 ): Promise<Report | null> {
-  return db.transaction().execute(async (trx) => {
+  return writeTransaction(db, async (trx) => {
     const before = await trx
       .selectFrom('reports')
       .selectAll()
@@ -533,7 +534,7 @@ export async function reviewFinding(
   },
   now: Date,
 ): Promise<{ skillId: string; versionId: string } | null> {
-  return db.transaction().execute(async (trx) => {
+  return writeTransaction(db, async (trx) => {
     const before = await trx
       .selectFrom('security_findings as f')
       .innerJoin('security_scans as sc', 'sc.id', 'f.scan_id')
@@ -588,7 +589,7 @@ export async function setSkillVisibility(
   input: { skillId: string; hidden: boolean; note: string; actorId: string; ipHash: string | null },
   now: Date,
 ): Promise<boolean> {
-  return db.transaction().execute(async (trx) => {
+  return writeTransaction(db, async (trx) => {
     const before = await trx
       .selectFrom('skills')
       .select(['id', 'status'])

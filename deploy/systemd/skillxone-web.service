@@ -9,6 +9,8 @@ User=skillxone
 Group=skillxone
 WorkingDirectory=/opt/skillxone
 Environment=NODE_ENV=production
+# Caps the V8 heap so a 1 GB server keeps headroom; see docs/deployment/measurements.md.
+Environment=NODE_OPTIONS=--max-old-space-size=256
 Environment=COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 Environment=COREPACK_HOME=/opt/skillxone/.corepack
 Environment=PATH=/opt/skillxone/.bin:/usr/local/bin:/usr/bin:/bin

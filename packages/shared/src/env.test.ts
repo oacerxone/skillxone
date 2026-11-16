@@ -39,7 +39,9 @@ describe('.env.example', () => {
     const { join } = await import('node:path');
     const { findWorkspaceRoot } = await import('./workspace');
     const values: Record<string, string> = {};
-    for (const line of readFileSync(join(findWorkspaceRoot(), '.env.example'), 'utf8').split('\n')) {
+    for (const line of readFileSync(join(findWorkspaceRoot(), '.env.example'), 'utf8').split(
+      '\n',
+    )) {
       const match = /^([A-Z0-9_]+)=(.*)$/.exec(line.trim());
       if (match) values[match[1]!] = match[2]!;
     }

@@ -2,6 +2,7 @@ import type { Kysely } from 'kysely';
 import { DEV_FIXTURE_SOURCE, newId, toIso } from '@skillxone/shared';
 import type { LifecycleState, Severity, VerificationState } from '@skillxone/shared';
 import type { Database, FindingCategory, SkillFilesTable } from './types';
+import { writeTransaction } from './transaction';
 
 /**
  * Storage for security assessments. The scanner itself lives in packages/security and never
@@ -233,7 +234,7 @@ export async function saveScanResult(
   result: ScanResultToStore,
 ): Promise<{ scanId: string; applied: boolean }> {
   const finishedIso = toIso(result.finishedAt);
-  return db.transaction().execute(async (trx) => {
+  return writeTransaction(db, async (trx) => {
     const existing = await trx
       .selectFrom('security_scans')
       .select('id')
@@ -382,7 +383,7 @@ export async function expireVerification(
   now: Date,
 ): Promise<boolean> {
   const nowIso = toIso(now);
-  return db.transaction().execute(async (trx) => {
+  return writeTransaction(db, async (trx) => {
     const current = await trx
       .selectFrom('verification_records')
       .select(['id', 'scan_id', 'policy_version'])

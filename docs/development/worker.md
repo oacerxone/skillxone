@@ -36,6 +36,6 @@ Run one schedule now: `pnpm worker schedule --run ranking`. Development fixtures
 - A worker that dies mid-job loses its lease. The next worker reclaims the job after the lease (5 minutes by default) and finishes it without duplicating skills, versions or scans.
 - A long job renews its lease with a heartbeat every third of the lease, so it is not reclaimed while it is still running.
 - Two workers on one database never run the same job.
-- A web request that writes while the worker holds the write lock waits (SQLite busy timeout, 5 s) and then succeeds.
+- A web request that writes while the worker holds the write lock waits (SQLite busy timeout, 5 s) and then succeeds. Every multi-statement write uses `writeTransaction`, which on SQLite starts with `BEGIN IMMEDIATE`. A deferred transaction that reads before it writes would otherwise fail with "database is locked" without waiting (`packages/database/src/transaction.test.ts`).
 - When GitHub's rate limit runs out, the job is parked until the reset time without using an attempt, and the run stops (`apps/worker/src/sync.test.ts`).
 - A job that fails is retried with exponential backoff. After its last attempt it is marked `dead` and listed by `pnpm worker jobs --status dead`.

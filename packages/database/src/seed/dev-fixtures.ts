@@ -3,6 +3,7 @@ import type { Kysely, Transaction } from 'kysely';
 import { DEV_FIXTURE_SOURCE, addMs, systemClock, toIso } from '@skillxone/shared';
 import type { Clock, VerificationState } from '@skillxone/shared';
 import type { Database } from '../types';
+import { writeTransaction } from '../transaction';
 
 /**
  * DEVELOPMENT-ONLY FIXTURES.
@@ -550,7 +551,7 @@ export async function seedDevFixtures(
   const summary: FixtureSummary = { repositories: 0, skills: 0 };
   const skillIds = new Map<string, string>();
 
-  await db.transaction().execute(async (trx) => {
+  await writeTransaction(db, async (trx) => {
     await deleteFixtures(trx);
 
     for (const [repoIndex, repo] of FIXTURES.entries()) {
@@ -810,5 +811,5 @@ export async function hasDevFixtures(db: Kysely<Database>): Promise<boolean> {
 
 /** Removes every fixture row (skills, versions, scans and links are removed by cascade). */
 export async function removeDevFixtures(db: Kysely<Database>): Promise<number> {
-  return db.transaction().execute((trx) => deleteFixtures(trx));
+  return writeTransaction(db, (trx) => deleteFixtures(trx));
 }

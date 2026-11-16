@@ -191,20 +191,20 @@ Decision: **SQLite is the default and the tested path. PostgreSQL is a supported
 
 ## 8. Deployment modes
 
-|                         | A: VPS (primary)                     | B: Docker Compose                          | C: Static catalog                                                  |
-| ----------------------- | ------------------------------------ | ------------------------------------------ | ------------------------------------------------------------------ |
-| Runs                    | Node + systemd, Caddy or Nginx, cron | `app` container, volume, optional `worker` | Any static host                                                    |
-| Database                | SQLite file                          | SQLite volume; PostgreSQL optional profile | SQLite inside the CI job, then discarded or cached                 |
-| Ingestion and scans     | Cron on the same host                | Worker container                           | Scheduled GitHub Actions workflow                                  |
-| Search                  | FTS5 on the server                   | FTS5 (Meilisearch optional profile)        | MiniSearch index, client-side                                      |
-| Submissions and reports | Built in                             | Built in                                   | Links to GitHub issue templates                                    |
-| Admin dashboard         | Yes                                  | Yes                                        | No                                                                 |
-| REST API                | Yes                                  | Yes                                        | Static JSON files at the same paths for `GET` list and detail only |
+|                         | A: VPS (primary)                     | B: Docker Compose                          | C: Static catalog                                                              |
+| ----------------------- | ------------------------------------ | ------------------------------------------ | ------------------------------------------------------------------------------ |
+| Runs                    | Node + systemd, Caddy or Nginx, cron | `app` container, volume, optional `worker` | Any static host                                                                |
+| Database                | SQLite file                          | SQLite volume; PostgreSQL optional profile | SQLite inside the CI job, then discarded or cached                             |
+| Ingestion and scans     | Cron on the same host                | Worker container                           | Scheduled GitHub Actions workflow                                              |
+| Search                  | FTS5 on the server                   | FTS5                                       | MiniSearch index, client-side                                                  |
+| Submissions and reports | Built in                             | Built in                                   | Links to GitHub issue templates                                                |
+| Admin dashboard         | Yes                                  | Yes                                        | No                                                                             |
+| REST API                | Yes                                  | Yes                                        | Static JSON files for list, detail and security, at the API paths plus `.json` |
 
 Limits stated plainly:
 
-- **1 GB VPS**: web and metadata sync work; scan concurrency 1; PostgreSQL and Meilisearch not supported.
-- **Mode C** has no server: no submissions form, no rate limiting, no admin, no live data. Freshness equals the workflow schedule. Search quality is lower than FTS5 on large catalogs, and the index is downloaded by the browser, so it is sharded by first letter above a size threshold.
+- **1 GB VPS**: web and metadata sync work; scan concurrency 1; cap the web process heap (measured in [measurements.md](../deployment/measurements.md)); PostgreSQL not supported at this size.
+- **Mode C** has no server: no submissions form, no rate limiting, no admin, no live data. Freshness equals the workflow schedule. Search quality is lower than FTS5 on large catalogs, and the browser downloads the whole index (155 KB gzipped for 668 skills); the index is not sharded yet.
 - **PHP-only shared hosting cannot run the worker or the Node server.** It can serve Mode C output. Hosts that offer a Node.js runtime (for example Passenger-based panels) get a separate documented path for Mode A without systemd, with cron supplied by the panel.
 - GitHub Actions scheduled runs are best-effort and can be delayed or skipped by GitHub; the workflow is idempotent so a missed run only delays freshness.
 
