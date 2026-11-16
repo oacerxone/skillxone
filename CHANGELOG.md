@@ -31,4 +31,4 @@ First beta. Not yet run in production; see "Known limitations".
 - MAINTAINERS.md and CODEOWNERS contain placeholders for the project owner to fill in, and SECURITY.md needs a fallback contact.
 - Trend scores stay at zero until seven days of star history have been recorded.
 
-[0.1.0-beta]: https://github.com/OWNER/skillxone/releases/tag/v0.1.0-beta
+[0.1.0-beta]: https://github.com/oacerxone/skillxone/releases/tag/v0.1.0-beta

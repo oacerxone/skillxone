@@ -29,10 +29,10 @@ sudo -u skillxone -s /bin/bash
 ```
 
 ```bash
-git clone https://github.com/OWNER/skillxone.git /opt/skillxone && cd /opt/skillxone
+git clone https://github.com/oacerxone/skillxone.git /opt/skillxone && cd /opt/skillxone
 ```
 
-Replace `OWNER/skillxone` with the repository you deploy from, and check out a release tag (`git checkout v0.1.0-beta`) rather than `main`. pnpm is provided by corepack; keeping its cache inside `/opt/skillxone` lets the hardened systemd units (which hide home directories) find it:
+If you deploy from a fork, replace `oacerxone/skillxone` with it, and check out a release tag (`git checkout v0.1.0-beta`) rather than `main`. pnpm is provided by corepack; keeping its cache inside `/opt/skillxone` lets the hardened systemd units (which hide home directories) find it:
 
 ```bash
 export COREPACK_HOME=/opt/skillxone/.corepack COREPACK_ENABLE_DOWNLOAD_PROMPT=0 PATH=/opt/skillxone/.bin:$PATH && mkdir -p /opt/skillxone/.bin && corepack enable --install-directory /opt/skillxone/.bin

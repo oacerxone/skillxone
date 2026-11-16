@@ -27,7 +27,7 @@ import { markdownToHast, stripFrontmatter } from '../lib/markdown';
 const root = findWorkspaceRoot();
 const outDir = resolve(process.argv[2] ?? join(root, 'out-static'));
 const repositoryUrl = (
-  process.env.NEXT_PUBLIC_REPOSITORY_URL ?? 'https://github.com/skillxone/skillxone'
+  process.env.NEXT_PUBLIC_REPOSITORY_URL ?? 'https://github.com/oacerxone/skillxone'
 ).replace(/\/$/, '');
 const generatedAt = new Date();
 

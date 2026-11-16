@@ -6,7 +6,7 @@ export interface NavItem {
 
 /** Repository URL shown in navigation. Override at build time for forks. */
 export const REPOSITORY_URL =
-  process.env.NEXT_PUBLIC_REPOSITORY_URL ?? 'https://github.com/skillxone/skillxone';
+  process.env.NEXT_PUBLIC_REPOSITORY_URL ?? 'https://github.com/oacerxone/skillxone';
 
 export const primaryNav: NavItem[] = [
   { href: '/explore', label: 'Explore' },
