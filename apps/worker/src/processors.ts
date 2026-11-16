@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   listRepositoriesToRecrawl,
+  pruneFinishedJobs,
   loadRankingFacts,
   saveRankingScores,
 } from '@skillxone/database';
@@ -181,6 +182,18 @@ export function createProcessors(
     /** End verifications past their expiry and queue rescans. */
     expire_verifications: () => expireVerifications(scanDeps),
 
+    /** Delete finished jobs older than the given number of days (default 30). */
+    async prune_jobs(payload) {
+      const days = (payload as { olderThanDays?: unknown }).olderThanDays;
+      const keep = typeof days === 'number' && days >= 1 ? days : 30;
+      return {
+        deleted: await pruneFinishedJobs(
+          deps.db,
+          new Date(deps.now().getTime() - keep * 86_400_000),
+        ),
+      };
+    },
+
     /** Queue scans for current versions not yet assessed by this scanner and policy. */
     enqueue_scans: () => enqueueMissingScans(scanDeps),
 
@@ -211,11 +224,17 @@ export function createProcessors(
     },
 
     async discover(payload) {
-      const provider = (payload as { provider?: unknown }).provider;
-      if (!DISCOVERY_PROVIDERS.includes(provider as DiscoveryProviderId)) {
-        throw new Error(`Unknown discovery provider: ${String(provider).slice(0, 40)}`);
+      const data = payload as { provider?: unknown; olderThanHours?: unknown };
+      if (!DISCOVERY_PROVIDERS.includes(data.provider as DiscoveryProviderId)) {
+        throw new Error(`Unknown discovery provider: ${String(data.provider).slice(0, 40)}`);
       }
-      return runDiscovery(deps, seeds, provider as DiscoveryProviderId);
+      const hours =
+        typeof data.olderThanHours === 'number' && data.olderThanHours > 0
+          ? data.olderThanHours
+          : undefined;
+      return runDiscovery(deps, seeds, data.provider as DiscoveryProviderId, {
+        recrawlOlderThanMs: hours === undefined ? undefined : hours * 3_600_000,
+      });
     },
   };
 }

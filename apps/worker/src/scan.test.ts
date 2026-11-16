@@ -311,3 +311,15 @@ describe('scan_skill', () => {
     );
   });
 });
+
+describe('development fixtures', () => {
+  it('are never queued for automatic scans or expiry', async () => {
+    const { seedDevFixtures, listVersionsNeedingScan, listExpiredVerifications } =
+      await import('@skillxone/database');
+    await seedDevFixtures(handle.db);
+    expect(await listVersionsNeedingScan(handle.db, 'any-scanner', 'any-policy')).toEqual([]);
+    expect(await listExpiredVerifications(handle.db, new Date('2030-01-01T00:00:00.000Z'))).toEqual(
+      [],
+    );
+  });
+});

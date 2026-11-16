@@ -3,6 +3,7 @@ import { hostname } from 'node:os';
 import { parseArgs } from 'node:util';
 import {
   createJobQueue,
+  listJobs,
   hasDevFixtures,
   migrateToLatest,
   openDatabase,
@@ -25,6 +26,8 @@ import {
 } from './processors';
 import type { DiscoveryProviderId } from './processors';
 import { drainQueue } from './runner';
+import type { DrainSummary } from './runner';
+import { enqueueDueSchedules, SCHEDULES, scheduleIntervals, scheduleStatus } from './schedules';
 import { enqueueMissingScans, expireVerifications, scanVersion } from './scan';
 import type { ScanDeps } from './scan';
 import { syncRepository } from './sync';
@@ -49,7 +52,10 @@ Commands:
   scan --queue            Queue scans for every skill not yet assessed by this scanner version
   expire-verifications    End expired verifications and queue their rescans
   enqueue <type>          Add a job  [--payload <json>] [--dedupe <key>] [--priority <n>]
+  schedule [--run <id>]   Queue the jobs of every due schedule (run from cron), or one schedule now
   drain                   Run queued jobs until none are runnable, then exit  [--max <n>]
+  serve                   Run schedules and jobs continuously until stopped  [--poll <seconds>]
+  jobs [--status s]       List recent jobs  [--limit <n>]
   help                    Show this message
 `;
 
@@ -140,6 +146,107 @@ const commands: Record<string, Command> = {
       .map(([status, n]) => `${status}=${n}`)
       .join(' ');
     console.log(`Jobs:          ${summary || 'none'}`);
+    console.log('\nSchedules:');
+    for (const item of await scheduleStatus(handle.db, new Date())) {
+      const every = item.intervalMinutes === 0 ? 'off' : `every ${item.intervalMinutes} min`;
+      console.log(
+        `  ${item.id.padEnd(13)} ${every.padEnd(18)} last ${item.lastRun ?? 'never'}${item.nextRun ? `, next ${item.due ? 'now (due)' : item.nextRun}` : ''}`,
+      );
+    }
+  },
+
+  async schedule(args, { handle }) {
+    const { values } = parseArgs({ args, options: { run: { type: 'string' } } });
+    if (values.run && !SCHEDULES.some((s) => s.id === values.run)) {
+      throw new UsageError(`--run must be one of: ${SCHEDULES.map((s) => s.id).join(', ')}.`);
+    }
+    const ran = await enqueueDueSchedules(
+      { db: handle.db, queue: createJobQueue(handle.db), now: () => new Date() },
+      scheduleIntervals(),
+      values.run,
+    );
+    if (ran.length === 0) console.log('No schedule is due.');
+    for (const item of ran) console.log(`${item.id}: ${item.enqueued} job(s) queued.`);
+  },
+
+  async jobs(args, { handle }) {
+    const { values } = parseArgs({
+      args,
+      options: { status: { type: 'string' }, limit: { type: 'string' } },
+    });
+    const limit = values.limit === undefined ? 30 : Number(values.limit);
+    if (!Number.isInteger(limit) || limit < 1)
+      throw new UsageError('--limit must be a positive integer.');
+    for (const job of await listJobs(handle.db, { status: values.status, limit })) {
+      console.log(
+        `${job.createdAt}  ${job.status.padEnd(9)} ${job.type.padEnd(22)} attempts ${job.attempts}/${job.maxAttempts}${job.schedule ? `  [${job.schedule}]` : ''}${job.lastError ? `\n    ${job.lastError.split('\n')[0]!.slice(0, 160)}` : ''}`,
+      );
+    }
+  },
+
+  async serve(args, { env, handle }) {
+    const { values } = parseArgs({ args, options: { poll: { type: 'string' } } });
+    const pollSeconds = values.poll === undefined ? 30 : Number(values.poll);
+    if (!Number.isInteger(pollSeconds) || pollSeconds < 1 || pollSeconds > 3600) {
+      throw new UsageError('--poll must be between 1 and 3600 seconds.');
+    }
+    const controller = new AbortController();
+    const stop = () => controller.abort();
+    process.once('SIGINT', stop);
+    process.once('SIGTERM', stop);
+
+    const workerId = `${hostname()}:${process.pid}:${randomUUID().slice(0, 8)}`;
+    const deps = syncDeps(env, handle);
+    const processors = createProcessors({
+      ...deps,
+      dialect: handle.dialect,
+      scan: scanDeps(env, handle),
+    });
+    console.log(
+      `Worker ${workerId} serving; polling every ${pollSeconds} s. Stop with Ctrl-C or SIGTERM.`,
+    );
+    const total: DrainSummary = { succeeded: 0, retried: 0, dead: 0, lost: 0, deferred: 0 };
+    while (!controller.signal.aborted) {
+      try {
+        for (const item of await enqueueDueSchedules({
+          db: handle.db,
+          queue: deps.queue,
+          now: () => new Date(),
+        })) {
+          console.log(`schedule ${item.id}: ${item.enqueued} job(s) queued`);
+        }
+        const summary = await drainQueue(deps.queue, processors, {
+          workerId,
+          signal: controller.signal,
+          onEvent(event) {
+            if (event.kind === 'succeeded') console.log(`ok     ${event.job.type} ${event.job.id}`);
+            else
+              console.error(
+                `${event.kind.padEnd(6)} ${event.job.type} ${event.job.id}: ${event.error}`,
+              );
+          },
+        });
+        for (const key of Object.keys(total) as Array<keyof DrainSummary>)
+          total[key] += summary[key];
+      } catch (error) {
+        // A database hiccup should not kill a long-running worker; log and try again.
+        console.error('worker loop error:', error instanceof Error ? error.message : String(error));
+      }
+      await new Promise<void>((resolve) => {
+        const timer = setTimeout(resolve, pollSeconds * 1000);
+        controller.signal.addEventListener(
+          'abort',
+          () => {
+            clearTimeout(timer);
+            resolve();
+          },
+          { once: true },
+        );
+      });
+    }
+    console.log(
+      `Stopped: ${total.succeeded} succeeded, ${total.retried} to retry, ${total.deferred} deferred, ${total.dead} dead, ${total.lost} lost.`,
+    );
   },
 
   async discover(args, { env, handle }) {

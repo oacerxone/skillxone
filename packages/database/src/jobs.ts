@@ -272,3 +272,56 @@ export function createJobQueue(db: Kysely<Database>, options: JobQueueOptions = 
     },
   };
 }
+
+/** Deletes finished jobs (succeeded or dead) that finished before `before`. */
+export async function pruneFinishedJobs(db: Kysely<Database>, before: Date): Promise<number> {
+  const result = await db
+    .deleteFrom('sync_jobs')
+    .where('status', 'in', ['succeeded', 'dead', 'cancelled'])
+    .where('finished_at', '<', toIso(before))
+    .executeTakeFirst();
+  return Number(result.numDeletedRows ?? 0);
+}
+
+export interface JobListItem {
+  id: string;
+  type: string;
+  status: string;
+  schedule: string | null;
+  attempts: number;
+  maxAttempts: number;
+  runAfter: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+  lockedBy: string | null;
+  lastError: string | null;
+  createdAt: string;
+}
+
+/** Recent jobs for the admin view, newest first, optionally filtered by status. */
+export async function listJobs(
+  db: Kysely<Database>,
+  options: { status?: string; limit?: number } = {},
+): Promise<JobListItem[]> {
+  let query = db.selectFrom('sync_jobs').selectAll();
+  if (options.status) query = query.where('status', '=', options.status as Job['status']);
+  const rows = await query
+    .orderBy('created_at', 'desc')
+    .orderBy('id', 'desc')
+    .limit(Math.min(Math.max(1, options.limit ?? 50), 500))
+    .execute();
+  return rows.map((row) => ({
+    id: row.id,
+    type: row.type,
+    status: row.status,
+    schedule: row.schedule,
+    attempts: Number(row.attempts),
+    maxAttempts: Number(row.max_attempts),
+    runAfter: row.run_after,
+    startedAt: row.started_at,
+    finishedAt: row.finished_at,
+    lockedBy: row.locked_by,
+    lastError: row.last_error,
+    createdAt: row.created_at,
+  }));
+}

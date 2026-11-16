@@ -106,6 +106,8 @@ Acceptance:
 - Lock-contention test: web writes succeed while the worker is writing.
 - Rate-limit exhaustion parks jobs until reset instead of failing them.
 
+Status: done, except the Admin Jobs page. It needs authentication, so it ships with the admin area in Phase 8. Its data (`listJobs`) and `pnpm worker jobs` / `pnpm worker status` exist now. See [worker operations](development/worker.md).
+
 ## Phase 8 — Community contribution
 
 - Submission and report endpoints with validation, rate limiting and duplicate detection. Admin dashboard modules: overview, repositories, skills, security, submissions, jobs, settings. GitHub OAuth, sessions, CSRF, audit log.

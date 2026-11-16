@@ -1,5 +1,5 @@
 import type { Kysely } from 'kysely';
-import { newId, toIso } from '@skillxone/shared';
+import { DEV_FIXTURE_SOURCE, newId, toIso } from '@skillxone/shared';
 import type { LifecycleState, Severity, VerificationState } from '@skillxone/shared';
 import type { Database, FindingCategory, SkillFilesTable } from './types';
 
@@ -361,7 +361,10 @@ export async function listExpiredVerifications(
   const rows = await db
     .selectFrom('verification_records as v')
     .innerJoin('skills as s', 's.id', 'v.skill_id')
+    .innerJoin('repositories as r', 'r.id', 's.repository_id')
     .select(['v.skill_id', 'v.version_id'])
+    // Development fixtures keep their hand-made states; they are never rescanned automatically.
+    .where('r.discovery_source', '!=', DEV_FIXTURE_SOURCE)
     .where('v.superseded_at', 'is', null)
     .where('v.state', '=', 'VERIFIED')
     .where('v.expires_at', '<=', toIso(now))
@@ -428,8 +431,10 @@ export async function listVersionsNeedingScan(
 ): Promise<Array<{ skillId: string; versionId: string }>> {
   const rows = await db
     .selectFrom('skills as s')
+    .innerJoin('repositories as r', 'r.id', 's.repository_id')
     .select(['s.id', 's.current_version_id'])
     .where('s.status', '=', 'active')
+    .where('r.discovery_source', '!=', DEV_FIXTURE_SOURCE)
     .where('s.current_version_id', 'is not', null)
     .where((eb) =>
       eb.not(

@@ -63,6 +63,12 @@ export async function drainQueue(
     if (!job) break;
     processed += 1;
 
+    // Keep the lease while a long job runs, so another worker does not reclaim it.
+    const heartbeat = setInterval(
+      () => void queue.heartbeat(job.id, options.workerId, leaseMs).catch(() => undefined),
+      Math.max(1000, Math.floor(leaseMs / 3)),
+    );
+    heartbeat.unref?.();
     try {
       const processor = processors[job.type];
       if (!processor) throw new Error(`No processor registered for job type "${job.type}"`);
@@ -92,6 +98,8 @@ export async function drainQueue(
       else if (outcome === 'dead') summary.dead += 1;
       else summary.lost += 1;
       options.onEvent?.({ kind: outcome, job, error: message });
+    } finally {
+      clearInterval(heartbeat);
     }
   }
 
