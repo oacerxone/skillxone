@@ -32,3 +32,18 @@ describe('parseEnv', () => {
     }
   });
 });
+
+describe('.env.example', () => {
+  it('is valid exactly as shipped', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const { findWorkspaceRoot } = await import('./workspace');
+    const values: Record<string, string> = {};
+    for (const line of readFileSync(join(findWorkspaceRoot(), '.env.example'), 'utf8').split('\n')) {
+      const match = /^([A-Z0-9_]+)=(.*)$/.exec(line.trim());
+      if (match) values[match[1]!] = match[2]!;
+    }
+    expect(Object.keys(values).length).toBeGreaterThan(5);
+    expect(() => parseEnv(values)).not.toThrow();
+  });
+});

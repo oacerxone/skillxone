@@ -38,11 +38,13 @@ const envSchema = z.object({
     .string()
     .optional()
     .transform((v) => (v ? v : undefined)),
-  GITHUB_USER_AGENT: z
-    .string()
-    .regex(/^[\w .()/:+@-]{1,120}$/, 'may contain letters, digits, spaces and . ( ) / : + @ -')
-    .optional()
-    .transform((v) => (v ? v : undefined)),
+  GITHUB_USER_AGENT: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z
+      .string()
+      .regex(/^[\w .()/:+@-]{1,120}$/, 'may contain letters, digits, spaces and . ( ) / : + @ -')
+      .optional(),
+  ),
   WORKER_CONCURRENCY: positiveInt(4),
   SCAN_CONCURRENCY: positiveInt(1),
   /** Wall-clock limit per scan; a scan that exceeds it is FAILED, never passed. */
