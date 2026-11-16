@@ -40,7 +40,9 @@ services:
     environment:
       POSTGRES_USER: skillxone
       POSTGRES_DB: skillxone
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env to use the postgres profile}
+      # Not ':?' — Compose interpolates every service, so a required variable here would break
+      # `docker compose up` for SQLite users. The postgres image refuses to start without it.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
