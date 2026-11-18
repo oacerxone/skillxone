@@ -386,7 +386,8 @@ CREATE TABLE sessions (                               -- admin and optional user
 
 Owned by `packages/search`, created by its own dialect-specific migration, rebuildable from `skills` at any time with `worker reindex`:
 
-- SQLite: `CREATE VIRTUAL TABLE skills_fts USING fts5(name, description, owner, repo, categories, body, tokenize='porter unicode61')`, keyed by `skills.rowid`.
+- SQLite: a contentless FTS5 table `skills_search(name, description, owner, repo, categories, body)` (`content=''`, `contentless_delete=1`) that stores only the index, plus `skills_search_map(doc_id integer primary key, skill_id, repository_id)` linking each document to its skill. Only the first 8,000 characters of each SKILL.md are indexed.
+- `skill_files.content` is plain text for SKILL.md and short files; other files are gzip-compressed and base64-encoded, with `content_encoding = 'gzip-base64'` recording it (migration 0002).
 - PostgreSQL: a `skills_search` table with a `tsvector` column and a GIN index.
 
 Because it is derived data, a corrupt index is repaired by dropping and rebuilding it. `healthy()` runs an integrity check and the admin Jobs page shows the result.

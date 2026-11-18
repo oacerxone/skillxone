@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_FILTERS, buildExploreQuery, parseExploreParams } from './search-params';
+import {
+  DEFAULT_FILTERS,
+  buildExploreQuery,
+  parseExploreParams,
+  stripProFilters,
+  toSkillQuery,
+  usesProFilters,
+} from './search-params';
 
 describe('parseExploreParams', () => {
   it('returns defaults for an empty query', () => {
@@ -23,6 +30,10 @@ describe('parseExploreParams', () => {
       verification: 'VERIFIED',
       category: 'devops',
       sort: 'updated',
+      minStars: 0,
+      license: '',
+      noScripts: false,
+      updatedDays: 0,
       view: 'cards',
       page: 3,
     });
@@ -78,5 +89,69 @@ describe('buildExploreQuery', () => {
 
   it('encodes special characters', () => {
     expect(buildExploreQuery({ ...DEFAULT_FILTERS, q: 'a&b=c #d' })).toBe('?q=a%26b%3Dc+%23d');
+  });
+});
+
+describe('Pro filters', () => {
+  it('parses only the allowed values', () => {
+    const filters = parseExploreParams({
+      stars: '100',
+      license: 'MIT',
+      scripts: 'none',
+      updated: '30',
+    });
+    expect(filters).toMatchObject({
+      minStars: 100,
+      license: 'MIT',
+      noScripts: true,
+      updatedDays: 30,
+    });
+    expect(
+      parseExploreParams({ stars: '7', license: "MIT' or 1=1", scripts: 'yes', updated: '2' }),
+    ).toMatchObject({ minStars: 0, license: '', noScripts: false, updatedDays: 0 });
+  });
+
+  it('round-trips through the query string', () => {
+    const filters = parseExploreParams({
+      stars: '10',
+      license: 'Apache-2.0',
+      scripts: 'none',
+      updated: '90',
+    });
+    const query = buildExploreQuery(filters);
+    expect(parseExploreParams(Object.fromEntries(new URLSearchParams(query)))).toEqual(filters);
+  });
+
+  it('strips every Pro filter and sort but keeps the free ones', () => {
+    const filters = parseExploreParams({
+      q: 'docker',
+      category: 'devops',
+      verification: 'verified',
+      agent: 'codex',
+      sort: 'rising',
+      stars: '100',
+      license: 'MIT',
+      scripts: 'none',
+      updated: '30',
+    });
+    expect(usesProFilters(filters)).toBe(true);
+    const free = stripProFilters(filters);
+    expect(usesProFilters(free)).toBe(false);
+    expect(free).toMatchObject({
+      q: 'docker',
+      category: 'devops',
+      verification: 'VERIFIED',
+      sort: '',
+    });
+    expect(stripProFilters(parseExploreParams({ sort: 'popular' })).sort).toBe('popular');
+  });
+
+  it('turns "updated within" into the start of a UTC day', () => {
+    const query = toSkillQuery(
+      parseExploreParams({ updated: '30' }),
+      20,
+      new Date('2026-06-15T17:45:00.000Z'),
+    );
+    expect(query.updatedSince).toBe('2026-05-16T00:00:00.000Z');
   });
 });

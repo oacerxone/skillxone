@@ -3,14 +3,24 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { agentLabel } from '@/lib/install';
-import { buildExploreQuery } from '@/lib/search-params';
+import { PRO_SORTS, STAR_OPTIONS, UPDATED_OPTIONS, buildExploreQuery } from '@/lib/search-params';
 import type { ExploreFilters as Filters } from '@/lib/search-params';
 
 interface Props {
   filters: Filters;
   agents: string[];
   categories: Array<{ slug: string; name: string }>;
+  licenses: string[];
+  /** Pro filters are shown but disabled for viewers without Pro (only when billing is on). */
+  locked: boolean;
 }
+
+const UPDATED_LABEL: Record<number, string> = {
+  0: 'Any time',
+  30: 'Last 30 days',
+  90: 'Last 90 days',
+  365: 'Last year',
+};
 
 const DEBOUNCE_MS = 250;
 
@@ -19,7 +29,7 @@ const DEBOUNCE_MS = 250;
  * shareable and survive a reload. The controls are a plain GET form: without JavaScript
  * the Search button submits it; with JavaScript, changes apply as you type or select.
  */
-export function ExploreFilters({ filters, agents, categories }: Props) {
+export function ExploreFilters({ filters, agents, categories, licenses, locked }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [query, setQuery] = useState(filters.q);
@@ -113,12 +123,13 @@ export function ExploreFilters({ filters, agents, categories }: Props) {
 
       <div>
         <label htmlFor="explore-agent" className="label">
-          Agent
+          Agent{locked && <ProTag />}
         </label>
         <select
           id="explore-agent"
           name="agent"
           className="input"
+          disabled={locked}
           value={filters.agent}
           onChange={(event) => apply({ agent: event.target.value })}
         >
@@ -185,8 +196,12 @@ export function ExploreFilters({ filters, agents, categories }: Props) {
           <option value="">{filters.q ? 'Best match' : 'Recommended'}</option>
           <option value="popular">Most stars</option>
           <option value="trending">Trending</option>
-          <option value="rising">Rising</option>
-          <option value="maintained">Best maintained</option>
+          {(['rising', 'maintained'] as const).map((sort) => (
+            <option key={sort} value={sort} disabled={locked && PRO_SORTS.includes(sort)}>
+              {sort === 'rising' ? 'Rising' : 'Best maintained'}
+              {locked ? ' (Pro)' : ''}
+            </option>
+          ))}
           <option value="updated">Recently updated</option>
           <option value="newest">Newly added</option>
           <option value="name">Name</option>
@@ -200,6 +215,101 @@ export function ExploreFilters({ filters, agents, categories }: Props) {
           Search
         </button>
       </div>
+
+      <fieldset
+        className="grid gap-3 rounded-lg border border-border p-3 sm:col-span-2 sm:grid-cols-2 lg:col-span-6 lg:grid-cols-4"
+        disabled={locked}
+        aria-describedby={locked ? 'explore-pro-note' : undefined}
+      >
+        <legend className="px-1 text-[12px] font-medium text-text-muted">
+          Advanced filters{locked && <ProTag />}
+        </legend>
+        <div>
+          <label htmlFor="explore-stars" className="label">
+            Repository stars
+          </label>
+          <select
+            id="explore-stars"
+            name="stars"
+            className="input"
+            value={filters.minStars}
+            onChange={(event) => apply({ minStars: Number(event.target.value) })}
+          >
+            {STAR_OPTIONS.map((stars) => (
+              <option key={stars} value={stars}>
+                {stars === 0 ? 'Any' : `${stars.toLocaleString('en')}+`}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="explore-license" className="label">
+            Licence
+          </label>
+          <select
+            id="explore-license"
+            name="license"
+            className="input"
+            value={filters.license}
+            onChange={(event) => apply({ license: event.target.value })}
+          >
+            <option value="">Any licence</option>
+            {licenses.map((license) => (
+              <option key={license} value={license}>
+                {license}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="explore-updated" className="label">
+            Updated
+          </label>
+          <select
+            id="explore-updated"
+            name="updated"
+            className="input"
+            value={filters.updatedDays}
+            onChange={(event) => apply({ updatedDays: Number(event.target.value) })}
+          >
+            {UPDATED_OPTIONS.map((days) => (
+              <option key={days} value={days}>
+                {UPDATED_LABEL[days]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <label className="flex items-center gap-2 self-end pb-2 text-[13px] text-text">
+          <input
+            type="checkbox"
+            name="scripts"
+            value="none"
+            checked={filters.noScripts}
+            onChange={(event) => apply({ noScripts: event.target.checked })}
+          />
+          Instructions only (no scripts)
+        </label>
+        {locked && (
+          <p
+            id="explore-pro-note"
+            className="text-[12px] text-text-muted sm:col-span-2 lg:col-span-4"
+          >
+            Agent, stars, licence, update date, script-free and score sorts are part of{' '}
+            <a href="/pricing" className="link">
+              skillxone Pro
+            </a>
+            . Search, categories and verification status stay free.
+          </p>
+        )}
+      </fieldset>
     </form>
+  );
+}
+
+function ProTag() {
+  return (
+    <span className="ml-1.5 rounded-sm border border-accent/40 px-1 text-[10px] font-semibold uppercase tracking-wide text-accent">
+      Pro
+    </span>
   );
 }

@@ -47,6 +47,10 @@ const envSchema = z.object({
   ),
   WORKER_CONCURRENCY: positiveInt(4),
   SCAN_CONCURRENCY: positiveInt(1),
+  /** New repositories stop being indexed once the catalog holds this many active skills. */
+  CATALOG_MAX_SKILLS: z.coerce.number().int().min(100).max(10_000_000).default(60_000),
+  /** Repository search only lists repositories with at least this many stars. */
+  DISCOVERY_MIN_STARS: z.coerce.number().int().min(0).max(100_000).default(5),
   /** Wall-clock limit per scan; a scan that exceeds it is FAILED, never passed. */
   SCAN_TIMEOUT_SECONDS: z.coerce.number().int().min(5).max(600).default(60),
   /** Days a verification stays valid before a rescan is required. */
@@ -67,6 +71,21 @@ const envSchema = z.object({
   /** Numeric GitHub user ids granted the admin and moderator roles at sign-in. */
   ADMIN_GITHUB_IDS: githubIdList,
   MODERATOR_GITHUB_IDS: githubIdList,
+  /**
+   * Razorpay Subscriptions for the paid Pro plan. Pro features are gated only when all four
+   * are set and sign-in is configured; otherwise every feature stays open to everyone.
+   */
+  RAZORPAY_KEY_ID: optionalString,
+  RAZORPAY_KEY_SECRET: optionalString,
+  RAZORPAY_WEBHOOK_SECRET: optionalString,
+  /** The plan created in the Razorpay dashboard (its amount and currency are set there). */
+  RAZORPAY_PLAN_ID: optionalString,
+  /** Price shown on the site; it must match the Razorpay plan. */
+  PRO_PRICE_LABEL: z
+    .string()
+    .max(40)
+    .optional()
+    .transform((v) => (v ? v : '$5 / month')),
   ALLOW_DEV_FIXTURES: z
     .enum(['0', '1'])
     .default('0')

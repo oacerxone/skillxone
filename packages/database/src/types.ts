@@ -1,4 +1,4 @@
-import type { Generated, Insertable, Selectable } from 'kysely';
+import type { ColumnType, Generated, Insertable, Selectable } from 'kysely';
 import type { JobStatus, LifecycleState, Severity, VerificationState } from '@skillxone/shared';
 
 /**
@@ -93,6 +93,12 @@ export interface SkillFilesTable {
   is_binary: Generated<Bool>;
   content: string | null;
   truncated: Generated<Bool>;
+  /** Null for plain text; `gzip-base64` when `content` is compressed (see file-content.ts). */
+  content_encoding: ColumnType<
+    'gzip-base64' | null,
+    'gzip-base64' | null | undefined,
+    'gzip-base64' | null
+  >;
 }
 
 export interface CategoriesTable {
@@ -333,6 +339,8 @@ export interface Database {
   skills: SkillsTable;
   skill_versions: SkillVersionsTable;
   skill_files: SkillFilesTable;
+  subscriptions: SubscriptionsTable;
+  billing_events: BillingEventsTable;
   categories: CategoriesTable;
   skill_categories: SkillCategoriesTable;
   agent_compatibility: AgentCompatibilityTable;
@@ -358,3 +366,22 @@ export type Job = Selectable<SyncJobsTable>;
 export type NewRepository = Insertable<RepositoriesTable>;
 export type NewSkill = Insertable<SkillsTable>;
 export type Category = Selectable<CategoriesTable>;
+
+export interface SubscriptionsTable {
+  id: string;
+  user_id: string;
+  provider: string;
+  provider_subscription_id: string;
+  plan_id: string;
+  /** The provider's status word, e.g. created, authenticated, active, pending, halted, cancelled. */
+  status: string;
+  /** End of the paid period (ISO-8601), when the provider reported one. */
+  current_end: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BillingEventsTable {
+  event_id: string;
+  received_at: string;
+}

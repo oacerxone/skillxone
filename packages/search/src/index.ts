@@ -36,6 +36,8 @@ export interface SearchBackend {
   ensure(): Promise<void>;
   /** Drops and rebuilds the whole index. Returns the number of indexed skills. */
   rebuild(): Promise<number>;
+  /** Drops index tables left by an older layout. Returns true if anything was dropped. */
+  dropLegacy(): Promise<boolean>;
   /** Re-indexes the skills of one repository (after a sync). */
   indexRepository(repositoryId: string): Promise<number>;
   /** Skill ids matching the query, best first. Empty for a query with no searchable terms. */
@@ -48,10 +50,14 @@ export interface SearchBackend {
 /** Upper bound on matches handed to the catalog for filtering and paging. */
 export const MAX_SEARCH_RESULTS = 1000;
 const MAX_TERMS = 8;
-const MAX_BODY_CHARS = 60_000;
+/**
+ * How much of each SKILL.md is indexed. The opening of a skill carries its purpose; indexing
+ * whole files made the index several times larger without making results better.
+ */
+export const MAX_BODY_CHARS = 8_000;
 
-/** BM25 column weights, in table column order: skill_id, name, description, owner, repo, categories, body. */
-const WEIGHTS = [0, 10, 4, 2, 2, 2, 1] as const;
+/** BM25 column weights, in table column order: name, description, owner, repo, categories, body. */
+const WEIGHTS = [10, 4, 2, 2, 2, 1] as const;
 const RANK_FUNCTION = `bm25(${WEIGHTS.join(', ')})`;
 /** Quality assumed for a skill that has not been ranked yet. */
 const UNRANKED_QUALITY = 0.3;
@@ -79,9 +85,32 @@ export function toFtsQuery(query: string, column?: string): string | null {
 
 type Db = DatabaseHandle['db'];
 
-const documentSelect = sql`
+/**
+ * SQLite layout. `skills_search` is a contentless FTS5 table: it keeps only the inverted
+ * index, not a second copy of every document, which is most of what the earlier
+ * `skills_fts` table stored. Contentless rows cannot be read back, so `skills_search_map`
+ * links each integer document id to its skill and repository. The ids are our own integer
+ * keys, so they survive VACUUM (a text-keyed table's hidden rowid does not).
+ */
+const SEARCH_TABLE = 'skills_search';
+/** The table that held a full copy of every document before `skills_search` replaced it. */
+const LEGACY_TABLE = 'skills_fts';
+
+const searchable = sql`s.status = 'active' and r.status in ('active', 'archived')`;
+
+const mapInsert = (repositoryId?: string) => sql`
+  insert into skills_search_map (skill_id, repository_id)
+  select s.id, s.repository_id
+  from skills s
+  join repositories r on r.id = s.repository_id
+  where ${searchable}${repositoryId === undefined ? sql`` : sql` and s.repository_id = ${repositoryId}`}
+  order by s.id
+`;
+
+const documentInsert = (repositoryId?: string) => sql`
+  insert into skills_search (rowid, name, description, owner, repo, categories, body)
   select
-    s.id,
+    m.doc_id,
     s.name,
     coalesce(s.curated_description, s.description),
     r.owner,
@@ -96,21 +125,34 @@ const documentSelect = sql`
       from skill_files f
       where f.version_id = s.current_version_id and f.kind = 'skill_md'
     ), '')
-  from skills s
+  from skills_search_map m
+  join skills s on s.id = m.skill_id
   join repositories r on r.id = s.repository_id
-  where s.status = 'active' and r.status in ('active', 'archived')
+  ${repositoryId === undefined ? sql`` : sql`where m.repository_id = ${repositoryId}`}
 `;
 
 function fts5Backend(db: Db): SearchBackend {
-  const bm25 = sql.raw(`bm25(skills_fts, ${WEIGHTS.join(', ')})`);
+  const bm25 = sql.raw(`bm25(${SEARCH_TABLE}, ${WEIGHTS.join(', ')})`);
 
-  const create = (executor: Db) =>
-    sql`
-      create virtual table if not exists skills_fts using fts5(
-        skill_id unindexed, name, description, owner, repo, categories, body,
+  const create = async (executor: Db) => {
+    await sql`
+      create table if not exists skills_search_map (
+        doc_id integer primary key,
+        skill_id text not null unique,
+        repository_id text not null
+      )
+    `.execute(executor);
+    await sql`create index if not exists idx_skills_search_map_repository on skills_search_map (repository_id)`.execute(
+      executor,
+    );
+    await sql`
+      create virtual table if not exists skills_search using fts5(
+        name, description, owner, repo, categories, body,
+        content = '', contentless_delete = 1,
         tokenize = 'porter unicode61 remove_diacritics 2'
       )
     `.execute(executor);
+  };
 
   const expectedCount = async () => {
     const row = await db
@@ -123,7 +165,9 @@ function fts5Backend(db: Db): SearchBackend {
     return Number(row.n);
   };
   const indexedCount = async () => {
-    const result = await sql<{ n: number }>`select count(*) as n from skills_fts`.execute(db);
+    const result = await sql<{ n: number }>`select count(*) as n from skills_search_map`.execute(
+      db,
+    );
     return Number(result.rows[0]?.n ?? 0);
   };
 
@@ -136,27 +180,36 @@ function fts5Backend(db: Db): SearchBackend {
 
     async rebuild() {
       await writeTransaction(db, async (trx) => {
-        await sql`drop table if exists skills_fts`.execute(trx);
+        await sql`drop table if exists skills_search`.execute(trx);
+        await sql`drop table if exists skills_search_map`.execute(trx);
         await create(trx);
-        await sql`insert into skills_fts (skill_id, name, description, owner, repo, categories, body) ${documentSelect}`.execute(
-          trx,
-        );
+        await mapInsert().execute(trx);
+        await documentInsert().execute(trx);
       });
       // Merge index segments so queries stay fast after a bulk load.
-      await sql`insert into skills_fts (skills_fts) values ('optimize')`.execute(db);
+      await sql`insert into skills_search (skills_search) values ('optimize')`.execute(db);
       return indexedCount();
+    },
+
+    async dropLegacy() {
+      const legacy = await sql<{ n: number }>`
+        select count(*) as n from sqlite_master where type = 'table' and name = ${LEGACY_TABLE}
+      `.execute(db);
+      if (Number(legacy.rows[0]?.n ?? 0) === 0) return false;
+      await sql`drop table if exists skills_fts`.execute(db);
+      return true;
     },
 
     async indexRepository(repositoryId) {
       await create(db);
       return writeTransaction(db, async (trx) => {
-        await sql`delete from skills_fts where skill_id in (select id from skills where repository_id = ${repositoryId})`.execute(
+        // Keyed by repository in the map, so skills deleted since the last run go too.
+        await sql`delete from skills_search where rowid in (select doc_id from skills_search_map where repository_id = ${repositoryId})`.execute(
           trx,
         );
-        const result = await sql`
-          insert into skills_fts (skill_id, name, description, owner, repo, categories, body)
-          ${documentSelect} and s.repository_id = ${repositoryId}
-        `.execute(trx);
+        await sql`delete from skills_search_map where repository_id = ${repositoryId}`.execute(trx);
+        await mapInsert(repositoryId).execute(trx);
+        const result = await documentInsert(repositoryId).execute(trx);
         return Number(result.numAffectedRows ?? 0);
       });
     },
@@ -171,17 +224,18 @@ function fts5Backend(db: Db): SearchBackend {
       // ahead of better ones (ADR-008).
       const cap = Math.min(Math.max(1, Math.trunc(limit)), MAX_SEARCH_RESULTS);
       const result = await sql<{ skill_id: string }>`
-        select c.skill_id as skill_id
+        select m.skill_id as skill_id
         from (
-          select skill_id, rank
-          from skills_fts
-          where skills_fts match ${match} and rank match ${RANK_FUNCTION}
+          select rowid as doc_id, rank
+          from skills_search
+          where skills_search match ${match} and rank match ${RANK_FUNCTION}
           order by rank
           limit ${cap}
         ) c
-        left join ranking_scores rs on rs.skill_id = c.skill_id
+        join skills_search_map m on m.doc_id = c.doc_id
+        left join ranking_scores rs on rs.skill_id = m.skill_id
         order by (-c.rank) * (0.6 + 0.4 * coalesce(rs.quality_score, ${UNRANKED_QUALITY})) desc,
-                 c.skill_id asc
+                 m.skill_id asc
       `.execute(db);
       return result.rows.map((row) => row.skill_id);
     },
@@ -191,10 +245,11 @@ function fts5Backend(db: Db): SearchBackend {
       if (!match) return [];
       const result = await sql<Suggestion>`
         select s.slug as slug, s.name as name, coalesce(s.curated_description, s.description) as description
-        from skills_fts
-        join skills s on s.id = skills_fts.skill_id
+        from skills_search
+        join skills_search_map m on m.doc_id = skills_search.rowid
+        join skills s on s.id = m.skill_id
         left join ranking_scores rs on rs.skill_id = s.id
-        where skills_fts match ${match}
+        where skills_search match ${match}
         order by (-${bm25}) * (0.6 + 0.4 * coalesce(rs.quality_score, ${UNRANKED_QUALITY})) desc, s.id asc
         limit ${Math.min(Math.max(1, Math.trunc(limit)), 20)}
       `.execute(db);
@@ -206,7 +261,7 @@ function fts5Backend(db: Db): SearchBackend {
       try {
         await create(db);
         // FTS5's built-in consistency check; it raises an error if the index is damaged.
-        await sql`insert into skills_fts (skills_fts, rank) values ('integrity-check', 1)`.execute(
+        await sql`insert into skills_search (skills_search, rank) values ('integrity-check', 1)`.execute(
           db,
         );
         const indexed = await indexedCount();
@@ -261,6 +316,7 @@ function substringBackend(db: Db): SearchBackend {
     name: 'substring',
     async ensure() {},
     rebuild: count,
+    dropLegacy: async () => false,
     indexRepository: async () => 0,
     async search(query, limit = MAX_SEARCH_RESULTS) {
       if (searchTerms(query).length === 0) return [];

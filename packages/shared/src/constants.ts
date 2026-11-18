@@ -34,3 +34,14 @@ export const SKILL_SORTS = [
   'name',
 ] as const;
 export type SkillSort = (typeof SKILL_SORTS)[number];
+
+/**
+ * Most skills indexed from one repository, by its star count. Repositories with no
+ * stars that hold hundreds of skills are almost always copies of other collections; the
+ * caps keep the catalog small enough to serve from a modest server. `max` is the
+ * operator's ceiling (SyncLimits.maxSkillsPerRepo).
+ */
+export function skillCapForStars(stars: number, max = 500): number {
+  const cap = stars <= 0 ? 25 : stars < 10 ? 50 : stars < 100 ? 150 : max;
+  return Math.min(cap, max);
+}

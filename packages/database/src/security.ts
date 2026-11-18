@@ -1,4 +1,5 @@
 import type { Kysely } from 'kysely';
+import { decodeFileContent } from './file-content';
 import { DEV_FIXTURE_SOURCE, newId, toIso } from '@skillxone/shared';
 import type { LifecycleState, Severity, VerificationState } from '@skillxone/shared';
 import type { Database, FindingCategory, SkillFilesTable } from './types';
@@ -66,6 +67,7 @@ export async function loadScanTarget(db: Db, versionId: string): Promise<ScanTar
     path: string;
     kind: SkillFilesTable['kind'];
     content: string | null;
+    content_encoding: string | null;
     size_bytes: number;
     is_executable: number;
     is_binary: number;
@@ -74,7 +76,7 @@ export async function loadScanTarget(db: Db, versionId: string): Promise<ScanTar
   }): StoredScanFile => ({
     path: row.path,
     kind: row.kind,
-    content: row.content,
+    content: decodeFileContent(row.content, row.content_encoding),
     sizeBytes: Number(row.size_bytes),
     isExecutable: Number(row.is_executable) === 1,
     isBinary: Number(row.is_binary) === 1,
@@ -89,6 +91,7 @@ export async function loadScanTarget(db: Db, versionId: string): Promise<ScanTar
         'path',
         'kind',
         'content',
+        'content_encoding',
         'size_bytes',
         'is_executable',
         'is_binary',

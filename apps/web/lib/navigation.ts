@@ -62,6 +62,7 @@ export const footerNav: { title: string; items: NavItem[] }[] = [
       { href: '/docs', label: 'Documentation' },
       { href: '/docs/api', label: 'API' },
       { href: '/api/v1/openapi.json', label: 'OpenAPI spec' },
+      { href: '/pricing', label: 'Pricing' },
     ],
   },
   {

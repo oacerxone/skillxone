@@ -52,13 +52,15 @@ export const SCHEDULES: readonly Schedule[] = [
     id: 'full',
     envVar: 'SCHEDULE_FULL_MINUTES',
     defaultMinutes: 7 * 24 * 60,
-    description: 'Re-check every indexed repository, and rebuild the search index.',
+    description:
+      'Re-check every indexed repository, list every topic repository above the star floor, and rebuild the search index.',
     jobs: [
       {
         type: 'discover',
         payload: { provider: 'recrawl', olderThanHours: 1 },
         dedupeKey: 'discover:recrawl-full',
       },
+      discover('repo-search-full'),
       { type: 'reindex', payload: {}, dedupeKey: 'reindex' },
     ],
   },
@@ -83,8 +85,12 @@ export const SCHEDULES: readonly Schedule[] = [
     id: 'maintenance',
     envVar: 'SCHEDULE_MAINTENANCE_MINUTES',
     defaultMinutes: 24 * 60,
-    description: 'Delete finished jobs older than 30 days.',
-    jobs: [{ type: 'prune_jobs', payload: { olderThanDays: 30 }, dedupeKey: 'prune_jobs' }],
+    description:
+      'Delete finished jobs older than 30 days; remove copies and over-cap skills, compress stored files.',
+    jobs: [
+      { type: 'prune_jobs', payload: { olderThanDays: 30 }, dedupeKey: 'prune_jobs' },
+      { type: 'compact_catalog', payload: {}, dedupeKey: 'compact_catalog' },
+    ],
   },
 ];
 

@@ -38,26 +38,126 @@ export function seedProvider(entries: readonly string[]): DiscoveryProvider {
   };
 }
 
+/** GitHub returns at most this many results for one search, however many pages are asked for. */
+export const SEARCH_RESULT_CAP = 1000;
+const PAGE_SIZE = 100;
+
+export interface RepoSearchOptions {
+  /**
+   * `full` walks every matching repository by slicing each query into star bands, and the
+   * bands into creation-date windows, until each slice has at most 1000 results. `recent`
+   * lists only repositories pushed in the last few days, most recently updated first.
+   */
+  mode?: 'full' | 'recent';
+  /** Repositories with fewer stars are not listed. */
+  minStars?: number;
+  /** Days back for `recent` mode. */
+  recentDays?: number;
+  /** Pause between search requests; GitHub allows 30 a minute with a token, 10 without. */
+  pauseMs?: number;
+  sleep?: (ms: number) => Promise<void>;
+  now?: () => Date;
+}
+
+/** Star bands, low to high, starting at `minStars`. `hi` null means no upper bound. */
+export function starBands(minStars: number): Array<{ lo: number; hi: number | null }> {
+  const edges = [0, 1, 5, 10, 20, 50, 100, 500, 2000];
+  const lows = [...new Set([minStars, ...edges.filter((edge) => edge > minStars)])].sort(
+    (a, b) => a - b,
+  );
+  return lows.map((lo, index) => ({
+    lo,
+    hi: index + 1 < lows.length ? lows[index + 1]! - 1 : null,
+  }));
+}
+
+const day = (date: Date) => date.toISOString().slice(0, 10);
+const starQualifier = (band: { lo: number; hi: number | null }) =>
+  band.hi === null ? `stars:>=${band.lo}` : `stars:${band.lo}..${band.hi}`;
+
 /** Repository search by topic or keyword. Public, unarchived repositories only. */
 export function repoSearchProvider(
   client: GitHubClient,
   queries: readonly string[],
-  maxPagesPerQuery = 2,
+  options: RepoSearchOptions = {},
 ): DiscoveryProvider {
+  const mode = options.mode ?? 'recent';
+  const minStars = Math.max(0, Math.trunc(options.minStars ?? 0));
+  const pauseMs = options.pauseMs ?? (client.authenticated ? 2_100 : 6_100);
+  const sleep =
+    options.sleep ?? ((ms: number) => new Promise((resolve) => setTimeout(resolve, ms)));
+  const now = options.now ?? (() => new Date());
+
   return {
-    id: 'repo-search',
+    id: mode === 'full' ? 'repo-search-full' : 'repo-search',
     async *discover(report) {
+      let requests = 0;
+      const paced = async <T>(work: () => Promise<T>): Promise<T> => {
+        if (requests > 0 && pauseMs > 0) await sleep(pauseMs);
+        requests += 1;
+        return work();
+      };
+      const count = (q: string) => paced(() => client.countRepositories(q));
+
+      async function* fetchSlice(
+        q: string,
+        total: number,
+        sort: 'stars' | 'updated',
+      ): AsyncGenerator<RepoCandidate> {
+        const pages = Math.min(Math.ceil(Math.min(total, SEARCH_RESULT_CAP) / PAGE_SIZE), 10);
+        if (pages === 0) return;
+        const iterator = client.searchRepositories(q, pages, sort)[Symbol.asyncIterator]();
+        // One paced request per page; the iterator ends by itself when no next page exists.
+        for (let page = 0; page < pages; page += 1) {
+          const next = await paced(() => iterator.next());
+          if (next.done) break;
+          for (const repo of next.value) {
+            if (repo.private) continue;
+            const ref = parseRepoRef(repo.full_name);
+            if (ref) yield { ...ref, source: 'repo-search' };
+          }
+          // A short page is the last one: stop without spending a paced request on it.
+          if (next.value.length < PAGE_SIZE) break;
+        }
+      }
+
+      // Splits a slice by creation date until each part fits under the result cap.
+      async function* byCreated(
+        base: string,
+        from: Date,
+        to: Date,
+        depth: number,
+      ): AsyncGenerator<RepoCandidate> {
+        const q = `${base} created:${day(from)}..${day(to)}`;
+        const total = await count(q);
+        const spanDays = (to.getTime() - from.getTime()) / 86_400_000;
+        if (total <= SEARCH_RESULT_CAP || spanDays < 2 || depth >= 12) {
+          if (total > SEARCH_RESULT_CAP) {
+            report.notes.push(
+              `"${q}" matches ${total} repositories; only ${SEARCH_RESULT_CAP} are listed.`,
+            );
+          }
+          yield* fetchSlice(q, total, 'stars');
+          return;
+        }
+        const middle = new Date(from.getTime() + Math.floor(spanDays / 2) * 86_400_000);
+        yield* byCreated(base, from, middle, depth + 1);
+        yield* byCreated(base, new Date(middle.getTime() + 86_400_000), to, depth + 1);
+      }
+
       for (const query of queries) {
         try {
-          for await (const page of client.searchRepositories(
-            `${query} archived:false`,
-            maxPagesPerQuery,
-          )) {
-            for (const repo of page) {
-              if (repo.private) continue;
-              const ref = parseRepoRef(repo.full_name);
-              if (ref) yield { ...ref, source: 'repo-search' };
-            }
+          if (mode === 'recent') {
+            const since = new Date(now().getTime() - (options.recentDays ?? 3) * 86_400_000);
+            const q = `${query} archived:false stars:>=${minStars} pushed:>=${day(since)}`;
+            yield* fetchSlice(q, await count(q), 'updated');
+            continue;
+          }
+          for (const band of starBands(minStars)) {
+            const base = `${query} archived:false ${starQualifier(band)}`;
+            const total = await count(base);
+            if (total <= SEARCH_RESULT_CAP) yield* fetchSlice(base, total, 'stars');
+            else yield* byCreated(base, new Date('2008-01-01T00:00:00Z'), now(), 0);
           }
         } catch (error) {
           if (!(error instanceof GitHubError)) throw error;

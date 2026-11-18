@@ -21,7 +21,8 @@ export function proxy(request: NextRequest) {
     "connect-src 'self'",
     "object-src 'none'",
     "base-uri 'none'",
-    "form-action 'self'",
+    // Pro checkout redirects from our own form to Razorpay's hosted payment page.
+    "form-action 'self' https://rzp.io https://*.razorpay.com",
     "frame-ancestors 'none'",
     ...(https ? ['upgrade-insecure-requests'] : []),
   ].join('; ');

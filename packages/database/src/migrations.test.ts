@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   DEFAULT_CATEGORIES,
+  BILLING_TABLES,
   INITIAL_TABLES,
   hasDevFixtures,
   migrateDownAll,
@@ -27,8 +28,8 @@ const tableNames = async () =>
 describe('migrations', () => {
   it('creates every table on an empty database', async () => {
     const outcome = await migrateToLatest(handle.db);
-    expect(outcome.applied).toEqual(['0001_initial']);
-    expect(await tableNames()).toEqual([...INITIAL_TABLES].sort());
+    expect(outcome.applied).toEqual(['0001_initial', '0002_compact_storage', '0003_billing']);
+    expect(await tableNames()).toEqual([...INITIAL_TABLES, ...BILLING_TABLES].sort());
   });
 
   it('is a no-op when run again', async () => {

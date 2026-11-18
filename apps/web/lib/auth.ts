@@ -15,6 +15,11 @@ import { csrfToken, originAllowed, verifyCsrf } from './security';
 
 export const SESSION_COOKIE = 'sx_session';
 export const STATE_COOKIE = 'sx_oauth_state';
+/** Where to return after sign-in. Only the fixed pages below are accepted. */
+export const NEXT_COOKIE = 'sx_oauth_next';
+const NEXT_PATHS = new Set(['/pricing', '/account']);
+export const safeNextPath = (value: string | null | undefined): string | null =>
+  value && NEXT_PATHS.has(value) ? value : null;
 
 const RANK: Record<UserRole, number> = { user: 0, moderator: 1, admin: 2 };
 export const hasRole = (user: { role: UserRole }, role: UserRole) => RANK[user.role] >= RANK[role];

@@ -10,6 +10,7 @@ import {
   parseRepoRef,
   repoSearchProvider,
   seedProvider,
+  starBands,
 } from './index';
 import type { DiscoveryProvider, FetchLike, RepoCandidate } from './index';
 
@@ -354,6 +355,7 @@ describe('discovery providers', () => {
 
   it('repository search skips private repositories and survives a rate limit', async () => {
     const { gh } = client([
+      json({ total_count: 2 }),
       json({
         items: [
           { full_name: 'a/public', private: false },
@@ -369,10 +371,65 @@ describe('discovery providers', () => {
       ),
     ]);
     const { candidates, notes } = await collect(
-      repoSearchProvider(gh, ['topic:agent-skills', 'topic:other']),
+      repoSearchProvider(gh, ['topic:agent-skills', 'topic:other'], { pauseMs: 0 }),
     );
     expect(candidates).toEqual([{ owner: 'a', repo: 'public', source: 'repo-search' }]);
     expect(notes[0]).toContain('RATE_LIMITED');
+  });
+
+  it('builds star bands from the floor upwards', () => {
+    expect(starBands(5)).toEqual([
+      { lo: 5, hi: 9 },
+      { lo: 10, hi: 19 },
+      { lo: 20, hi: 49 },
+      { lo: 50, hi: 99 },
+      { lo: 100, hi: 499 },
+      { lo: 500, hi: 1999 },
+      { lo: 2000, hi: null },
+    ]);
+    expect(starBands(3000)).toEqual([{ lo: 3000, hi: null }]);
+  });
+
+  it('recent search lists recently pushed repositories above the star floor', async () => {
+    const { gh, calls } = client([
+      json({ total_count: 1 }),
+      json({ items: [{ full_name: 'a/b' }] }),
+    ]);
+    const { candidates } = await collect(
+      repoSearchProvider(gh, ['topic:agent-skills'], { pauseMs: 0, minStars: 5, now: () => NOW }),
+    );
+    expect(candidates).toEqual([{ owner: 'a', repo: 'b', source: 'repo-search' }]);
+    const q = decodeURIComponent(calls[1]!.url);
+    expect(q).toContain('stars:>=5');
+    expect(q).toContain('pushed:>=2026-05-29');
+    expect(q).toContain('sort=updated');
+  });
+
+  it('full search splits a band over the result cap by creation date, pausing between requests', async () => {
+    const pauses: number[] = [];
+    const page = (name: string) => json({ items: [{ full_name: name }] });
+    const { gh, calls } = client([
+      json({ total_count: 1500 }), // band stars:>=2000 is over the cap
+      json({ total_count: 2500 }), // whole date range: still over, split
+      json({ total_count: 600 }), // first half
+      page('a/old'),
+      json({ total_count: 700 }), // second half
+      page('a/new'),
+    ]);
+    const { candidates } = await collect(
+      repoSearchProvider(gh, ['topic:x'], {
+        mode: 'full',
+        minStars: 2000,
+        pauseMs: 50,
+        sleep: async (ms) => {
+          pauses.push(ms);
+        },
+        now: () => NOW,
+      }),
+    );
+    expect(candidates.map((c) => `${c.owner}/${c.repo}`)).toEqual(['a/old', 'a/new']);
+    expect(decodeURIComponent(calls[2]!.url)).toMatch(/created:2008-01-01\.\.\d{4}-\d{2}-\d{2}/);
+    expect(pauses).toHaveLength(calls.length - 1);
   });
 
   it('code search is skipped, visibly, without a token', async () => {

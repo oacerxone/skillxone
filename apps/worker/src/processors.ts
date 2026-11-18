@@ -1,7 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
+  compressStoredFiles,
+  enforceCatalogLimits,
   listRepositoriesToRecrawl,
+  purgeRemovedSkills,
   pruneFinishedJobs,
   loadRankingFacts,
   saveRankingScores,
@@ -56,6 +59,7 @@ export function loadSeedFile(root: string = findWorkspaceRoot()): SeedFile {
 export const DISCOVERY_PROVIDERS = [
   'seed',
   'repo-search',
+  'repo-search-full',
   'code-search',
   'collection',
   'recrawl',
@@ -90,7 +94,14 @@ export async function runDiscovery(
   } else {
     const providers: Record<Exclude<DiscoveryProviderId, 'recrawl'>, DiscoveryProvider> = {
       seed: seedProvider(seeds.repositories),
-      'repo-search': repoSearchProvider(deps.client, seeds.searchQueries),
+      'repo-search': repoSearchProvider(deps.client, seeds.searchQueries, {
+        mode: 'recent',
+        minStars: deps.discoveryMinStars ?? 5,
+      }),
+      'repo-search-full': repoSearchProvider(deps.client, seeds.searchQueries, {
+        mode: 'full',
+        minStars: deps.discoveryMinStars ?? 5,
+      }),
       'code-search': codeSearchProvider(deps.client),
       collection: collectionProvider(deps.client, seeds.collections),
     };
@@ -209,6 +220,63 @@ export function createProcessors(
       return { indexed: await search.indexRepository(repositoryId) };
     },
 
+    /**
+     * Keeps the catalog within the server's means: removes identical copies and skills over
+     * a repository's cap, deletes removed skills, re-indexes what changed, and starts the
+     * compression of files stored before compression existed.
+     */
+    async compact_catalog() {
+      const limits = await enforceCatalogLimits(deps.db, {
+        protectedRepositories: seeds.repositories,
+        maxSkillsPerRepo: deps.limits?.maxSkillsPerRepo,
+        now: deps.now(),
+      });
+      const touched = new Set(limits.repositoryIds);
+      let purged = 0;
+      for (;;) {
+        const batch = await purgeRemovedSkills(deps.db, 1000);
+        purged += batch.deleted;
+        for (const id of batch.repositoryIds) touched.add(id);
+        if (batch.deleted === 0) break;
+      }
+      for (const repositoryId of touched) {
+        await deps.queue.enqueue(
+          'index_repo',
+          { repositoryId },
+          { dedupeKey: `index:${repositoryId}` },
+        );
+      }
+      const droppedLegacyIndex = await search.dropLegacy();
+      await deps.queue.enqueue('compress_files', { afterId: '' }, { dedupeKey: 'compress_files:' });
+      return {
+        duplicates: limits.duplicates,
+        capped: limits.capped,
+        purged,
+        reindexed: touched.size,
+        droppedLegacyIndex,
+      };
+    },
+
+    /** Compresses stored files in batches, then queues itself to continue from where it stopped. */
+    async compress_files(payload) {
+      const raw = (payload as { afterId?: unknown }).afterId;
+      let afterId = typeof raw === 'string' ? raw.slice(0, 64) : '';
+      let compressed = 0;
+      const started = Date.now();
+      while (Date.now() - started < 30_000) {
+        const batch = await compressStoredFiles(deps.db, afterId, 500);
+        compressed += batch.compressed;
+        if (batch.nextAfterId === null) return { compressed, done: true };
+        afterId = batch.nextAfterId;
+      }
+      await deps.queue.enqueue(
+        'compress_files',
+        { afterId },
+        { dedupeKey: `compress_files:${afterId}` },
+      );
+      return { compressed, done: false, next: afterId };
+    },
+
     /** Drop and rebuild the whole search index. Also the repair for a damaged index. */
     async reindex() {
       return { indexed: await search.rebuild() };
@@ -220,7 +288,11 @@ export function createProcessors(
       const ref = parseRepoRef(`${String(data.owner)}/${String(data.repo)}`);
       if (!ref) throw new Error('sync_repo payload does not name a valid repository');
       const source = typeof data.source === 'string' ? data.source.slice(0, 40) : 'unknown';
-      return syncRepository(deps, { ...ref, source }, job.id);
+      return syncRepository(
+        { ...deps, protectedRepositories: seeds.repositories },
+        { ...ref, source },
+        job.id,
+      );
     },
 
     async discover(payload) {

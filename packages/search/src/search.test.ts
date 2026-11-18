@@ -261,7 +261,7 @@ describe('index maintenance', () => {
 
       const raw = new BetterSqlite3(file);
       raw.unsafeMode(true);
-      raw.prepare("update skills_fts_data set block = x'deadbeef' where id > 10").run();
+      raw.prepare("update skills_search_data set block = x'deadbeef' where id > 10").run();
       raw.close();
 
       const damaged = await backend.health();
@@ -278,11 +278,34 @@ describe('index maintenance', () => {
   });
 
   it('recreates a missing index on demand', async () => {
-    await sql`drop table skills_fts`.execute(handle.db);
+    await sql`drop table skills_search`.execute(handle.db);
+    await sql`drop table skills_search_map`.execute(handle.db);
     await search.ensure();
     expect(await search.search('docker')).toEqual([]);
     expect((await search.health()).ok).toBe(false);
     await search.rebuild();
     expect(await names('docker')).toEqual(['dockerfile-reviewer']);
+  });
+  it('keeps no copy of the documents and removes deleted skills on re-index', async () => {
+    const tables = await sql<{ name: string }>`
+      select name from sqlite_master where name like 'skills_search%'
+    `.execute(handle.db);
+    expect(tables.rows.map((row) => row.name)).not.toContain('skills_search_content');
+
+    const hit = await handle.db
+      .selectFrom('skills')
+      .select(['id', 'repository_id'])
+      .where('name', '=', 'dockerfile-reviewer')
+      .executeTakeFirstOrThrow();
+    await handle.db.deleteFrom('skills').where('id', '=', hit.id).execute();
+    await search.indexRepository(hit.repository_id);
+    expect(await names('dockerfile')).toEqual([]);
+    expect((await search.health()).ok).toBe(true);
+  });
+
+  it('drops the legacy full-copy table once', async () => {
+    await sql`create virtual table skills_fts using fts5(name)`.execute(handle.db);
+    expect(await search.dropLegacy()).toBe(true);
+    expect(await search.dropLegacy()).toBe(false);
   });
 });

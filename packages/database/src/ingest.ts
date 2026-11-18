@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { encodeFileContent } from './file-content';
 import type { Kysely, Transaction } from 'kysely';
 import { newId, toIso } from '@skillxone/shared';
 import type { Database, SkillFilesTable } from './types';
@@ -519,7 +520,7 @@ export async function saveSkillSnapshot(
               kind: file.kind,
               is_executable: file.isExecutable ? (1 as const) : (0 as const),
               is_binary: file.isBinary ? (1 as const) : (0 as const),
-              content: file.content,
+              ...encodeFileContent(file.kind, file.content),
               truncated: file.truncated ? (1 as const) : (0 as const),
             })),
           )

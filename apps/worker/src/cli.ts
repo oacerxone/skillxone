@@ -3,7 +3,11 @@ import { hostname } from 'node:os';
 import { parseArgs } from 'node:util';
 import {
   backupSqlite,
+  compressStoredFiles,
   createJobQueue,
+  enforceCatalogLimits,
+  purgeRemovedSkills,
+  vacuumSqlite,
   listJobs,
   restoreSqlite,
   hasDevFixtures,
@@ -46,10 +50,14 @@ Commands:
   seed --remove-dev       Delete all development fixtures
   status                  Show database and queue status
   discover [--provider p] Queue sync jobs for candidate repositories
-                          (seed | repo-search | code-search | collection | recrawl; default seed)
+                          (seed | repo-search | repo-search-full | code-search | collection | recrawl;
+                          default seed)
   sync <owner/repo>       Index one repository now and print the result
   rank                    Recompute quality and trend scores for every skill
   reindex                 Rebuild the search index (also repairs a damaged one)
+  compact [--vacuum]      Remove identical copies and over-cap skills, delete removed skills,
+                          rebuild the search index and compress stored files; --vacuum then
+                          shrinks the SQLite file (stop the web app and worker first)
   search-health           Check the search index
   scan <owner/repo/skill> Assess one skill now and print the result (static analysis only)
   scan --queue            Queue scans for every skill not yet assessed by this scanner version
@@ -74,7 +82,11 @@ function syncDeps(env: Env, handle: DatabaseHandle): SyncDeps {
     client: new GitHubClient({ token: env.GITHUB_TOKEN, userAgent: env.GITHUB_USER_AGENT }),
     queue: createJobQueue(handle.db),
     now: () => new Date(),
-    limits: { downloadConcurrency: env.WORKER_CONCURRENCY },
+    limits: {
+      downloadConcurrency: env.WORKER_CONCURRENCY,
+      maxCatalogSkills: env.CATALOG_MAX_SKILLS,
+    },
+    discoveryMinStars: env.DISCOVERY_MIN_STARS,
   };
 }
 
@@ -302,6 +314,43 @@ const commands: Record<string, Command> = {
   async reindex(_args, { handle }) {
     const backend = createSearchBackend(handle);
     console.log(`Indexed ${await backend.rebuild()} skill(s) with the ${backend.name} backend.`);
+  },
+
+  async compact(args, { handle }) {
+    const started = Date.now();
+    const elapsed = () => `${((Date.now() - started) / 1000).toFixed(0)}s`;
+    const limits = await enforceCatalogLimits(handle.db, {
+      protectedRepositories: loadSeedFile().repositories,
+      now: new Date(),
+    });
+    console.log(
+      `Marked ${limits.duplicates} identical copies and ${limits.capped} over-cap skills removed (${elapsed()}).`,
+    );
+    let purged = 0;
+    for (;;) {
+      const batch = await purgeRemovedSkills(handle.db, 1000);
+      purged += batch.deleted;
+      if (batch.deleted === 0) break;
+    }
+    console.log(`Deleted ${purged} removed skills (${elapsed()}).`);
+    const search = createSearchBackend(handle);
+    console.log(`Indexed ${await search.rebuild()} skills for search (${elapsed()}).`);
+    let compressed = 0;
+    let afterId = '';
+    for (;;) {
+      const batch = await compressStoredFiles(handle.db, afterId, 2000);
+      compressed += batch.compressed;
+      if (batch.nextAfterId === null) break;
+      afterId = batch.nextAfterId;
+    }
+    console.log(`Compressed ${compressed} stored files (${elapsed()}).`);
+    if (args.includes('--vacuum')) {
+      if (await search.dropLegacy()) console.log('Dropped the old search table.');
+      if (handle.dialect === 'sqlite') {
+        await vacuumSqlite(handle.db);
+        console.log(`Shrank the database file (${elapsed()}).`);
+      }
+    }
   },
 
   async 'search-health'(_args, { handle }) {

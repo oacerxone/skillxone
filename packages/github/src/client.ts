@@ -357,9 +357,21 @@ export class GitHubClient {
   }
 
   /** Repository search. 30 requests per minute authenticated, 10 unauthenticated; 1000 results per query. */
-  searchRepositories(query: string, maxPages = 3): AsyncGenerator<RepoMetadata[]> {
-    const url = `${API_HOST}/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=100`;
+  searchRepositories(
+    query: string,
+    maxPages = 3,
+    sort: 'stars' | 'updated' = 'stars',
+  ): AsyncGenerator<RepoMetadata[]> {
+    const url = `${API_HOST}/search/repositories?q=${encodeURIComponent(query)}&sort=${sort}&order=desc&per_page=100`;
     return this.paginate(url, 'repository search', maxPages);
+  }
+
+  /** Number of repositories a search matches (GitHub returns at most 1000 of them). */
+  async countRepositories(query: string): Promise<number> {
+    const url = `${API_HOST}/search/repositories?q=${encodeURIComponent(query)}&per_page=1`;
+    const result = await this.json<{ total_count?: unknown }>(url, 'repository search count');
+    const total = Number(result.data?.total_count);
+    return Number.isFinite(total) && total >= 0 ? total : 0;
   }
 
   /**

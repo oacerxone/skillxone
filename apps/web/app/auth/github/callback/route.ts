@@ -2,7 +2,9 @@ import { NextResponse } from 'next/server';
 import { createSession, upsertGitHubUser, writeAudit } from '@skillxone/database';
 import {
   cookieOptions,
+  NEXT_COOKIE,
   oauthConfig,
+  safeNextPath,
   requestIpHash,
   SESSION_COOKIE,
   STATE_COOKIE,
@@ -21,6 +23,15 @@ function fail(request: Request, reason: string): Response {
   return response;
 }
 
+function readCookieValue(request: Request, name: string): string | undefined {
+  return request.headers
+    .get('cookie')
+    ?.split(';')
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${name}=`))
+    ?.slice(name.length + 1);
+}
+
 /** Finishes GitHub sign-in: checks state, reads the profile, starts a session. */
 export async function GET(request: Request): Promise<Response> {
   const config = oauthConfig();
@@ -28,12 +39,7 @@ export async function GET(request: Request): Promise<Response> {
   const params = new URL(request.url).searchParams;
   const state = params.get('state') ?? '';
   const code = params.get('code') ?? '';
-  const expected = request.headers
-    .get('cookie')
-    ?.split(';')
-    .map((part) => part.trim())
-    .find((part) => part.startsWith(`${STATE_COOKIE}=`))
-    ?.slice(STATE_COOKIE.length + 1);
+  const expected = readCookieValue(request, STATE_COOKIE);
   if (!expected || !state || !safeEqual(expected, state)) return fail(request, 'state');
 
   try {
@@ -59,12 +65,14 @@ export async function GET(request: Request): Promise<Response> {
       },
       now,
     );
+    const next = safeNextPath(readCookieValue(request, NEXT_COOKIE));
     const response = NextResponse.redirect(
-      new URL(user.role === 'user' ? '/' : '/admin', request.url),
+      new URL(next ?? (user.role === 'user' ? '/' : '/admin'), request.url),
       303,
     );
     response.cookies.set(SESSION_COOKIE, session.token, cookieOptions(7 * 86_400));
     response.cookies.delete({ name: STATE_COOKIE, path: '/auth' });
+    response.cookies.delete({ name: NEXT_COOKIE, path: '/auth' });
     return response;
   } catch (error) {
     console.error(

@@ -1,4 +1,5 @@
 import { sql } from 'kysely';
+import { decodeFileContent } from './file-content';
 import type { Kysely, Selectable } from 'kysely';
 import { DEV_FIXTURE_SOURCE } from '@skillxone/shared';
 import type { LifecycleState, SkillSort, VerificationState } from '@skillxone/shared';
@@ -28,6 +29,14 @@ export interface SkillQuery {
   verification?: VerificationState;
   category?: string;
   sort?: SkillSort;
+  /** Repository has at least this many stars. */
+  minStars?: number;
+  /** Exact licence (SPDX id as stored). */
+  license?: string;
+  /** Only skills whose current version has no scripts or executable files. */
+  noScripts?: boolean;
+  /** Content changed on or after this ISO-8601 time. */
+  updatedSince?: string;
   /**
    * Restrict results to these skill ids. With `sort: 'relevance'` the order of this list
    * is the result order (it comes from the search backend, best match first).
@@ -99,6 +108,21 @@ function baseQuery(db: Db, query: SkillQuery) {
   }
 
   if (query.verification) qb = qb.where('s.verification_state', '=', query.verification);
+  if (query.minStars !== undefined && query.minStars > 0)
+    qb = qb.where('r.stars', '>=', query.minStars);
+  if (query.license) qb = qb.where('s.license', '=', query.license);
+  if (query.updatedSince) qb = qb.where('s.content_updated_at', '>=', query.updatedSince);
+  if (query.noScripts) {
+    qb = qb.where((eb) =>
+      eb.exists(
+        eb
+          .selectFrom('skill_versions as nv')
+          .select('nv.id')
+          .whereRef('nv.id', '=', 's.current_version_id')
+          .where('nv.has_scripts', '=', 0),
+      ),
+    );
+  }
 
   if (query.category) {
     const category = query.category;
@@ -624,11 +648,11 @@ export async function getSkillBySlug(db: Db, slug: string): Promise<SkillDetail 
       .execute();
     const md = await db
       .selectFrom('skill_files')
-      .select('content')
+      .select(['content', 'content_encoding'])
       .where('version_id', '=', currentRow.id)
       .where('kind', '=', 'skill_md')
       .executeTakeFirst();
-    skillMarkdown = md?.content ?? null;
+    skillMarkdown = md ? decodeFileContent(md.content, md.content_encoding) : null;
 
     const scan = await db
       .selectFrom('security_scans')
@@ -718,13 +742,18 @@ export async function getSkillFile(
   const row = await db
     .selectFrom('skill_files as f')
     .innerJoin('skills as s', 's.current_version_id', 'f.version_id')
-    .select(['f.path', 'f.content', 'f.kind', 'f.size_bytes'])
+    .select(['f.path', 'f.content', 'f.content_encoding', 'f.kind', 'f.size_bytes'])
     .where('s.slug', '=', slug)
     .where('s.status', '=', 'active')
     .where('f.path', '=', path)
     .executeTakeFirst();
   if (!row) return undefined;
-  return { path: row.path, content: row.content, kind: row.kind, sizeBytes: row.size_bytes };
+  return {
+    path: row.path,
+    content: decodeFileContent(row.content, row.content_encoding),
+    kind: row.kind,
+    sizeBytes: row.size_bytes,
+  };
 }
 
 /** Other active skills in the same categories, most starred first. Flagged skills are excluded. */
@@ -879,4 +908,20 @@ export async function getRepositoryStars(
     .where('status', 'in', ['active', 'archived'])
     .executeTakeFirst();
   return row ? Number(row.stars) : null;
+}
+
+/** The most common licences among active skills, for the licence filter. */
+export async function listTopLicenses(db: Db, limit = 12): Promise<string[]> {
+  const rows = await db
+    .selectFrom('skills')
+    .select(['license'])
+    .select((eb) => eb.fn.countAll<number>().as('n'))
+    .where('status', '=', 'active')
+    .where('license', 'is not', null)
+    .groupBy('license')
+    .orderBy('n', 'desc')
+    .orderBy('license')
+    .limit(limit)
+    .execute();
+  return rows.flatMap((row) => (row.license ? [row.license] : []));
 }

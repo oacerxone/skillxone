@@ -1,9 +1,12 @@
 import {
+  countActiveSkills,
   findRepositoryByFullName,
+  hasBetterCopy,
   markSkillsRemoved,
   recordIngestionError,
   recordMetricsSnapshot,
   recordRepositoryMissing,
+  repositoryHasActiveSkills,
   resolveIngestionErrors,
   revokeRepositoryVerifications,
   saveSkillSnapshot,
@@ -24,6 +27,7 @@ import {
   parseSkillMd,
 } from '@skillxone/skill-parser';
 import type { SkillLocation, TreeEntry } from '@skillxone/skill-parser';
+import { skillCapForStars } from '@skillxone/shared';
 
 /**
  * Synchronises one repository: metadata, file listing, skills, versions.
@@ -39,6 +43,11 @@ export interface SyncLimits {
   maxSkillsPerRepo: number;
   maxFilesPerSkill: number;
   downloadConcurrency: number;
+  /**
+   * New repositories are not indexed once the catalog holds this many active skills, so it
+   * cannot outgrow the server. Repositories already in the catalog keep updating.
+   */
+  maxCatalogSkills: number;
 }
 
 export const DEFAULT_SYNC_LIMITS: SyncLimits = {
@@ -47,6 +56,7 @@ export const DEFAULT_SYNC_LIMITS: SyncLimits = {
   maxSkillsPerRepo: 500,
   maxFilesPerSkill: 200,
   downloadConcurrency: 4,
+  maxCatalogSkills: 60_000,
 };
 
 export interface SyncDeps {
@@ -55,6 +65,10 @@ export interface SyncDeps {
   queue: JobQueue;
   now: () => Date;
   limits?: Partial<SyncLimits>;
+  /** Repository search lists only repositories with at least this many stars. */
+  discoveryMinStars?: number;
+  /** Repositories (`owner/name`) exempt from copy removal and caps: the curated seed list. */
+  protectedRepositories?: readonly string[];
 }
 
 export interface SyncTarget extends RepoRef {
@@ -74,6 +88,10 @@ export interface SyncSummary {
   unchanged: number;
   removed: number;
   errors: number;
+  /** Skills not indexed because a more established copy is already in the catalog. */
+  duplicates?: number;
+  /** Skills beyond this repository's cap (see skillCapForStars). */
+  overCap?: number;
 }
 
 const emptySummary = (repository: string, status: SyncStatus, detail?: string): SyncSummary => ({
@@ -377,6 +395,21 @@ export async function syncRepository(
   }
   if (head === repo.previousHeadSha) return emptySummary(fullName, 'unchanged');
 
+  // Catalog size guard: a repository with no skills yet waits while the catalog is full.
+  if (
+    !(await repositoryHasActiveSkills(db, repo.id)) &&
+    (await countActiveSkills(db)) >= limits.maxCatalogSkills
+  ) {
+    await recordIngestionError(db, {
+      repositoryId: repo.id,
+      jobId,
+      code: 'CATALOG_FULL',
+      message: `The catalog holds ${limits.maxCatalogSkills} skills, its configured maximum; new repositories wait.`,
+      now,
+    });
+    return emptySummary(fullName, 'skipped', 'catalog full');
+  }
+
   // 3. List files and find skills.
   const { entries, complete } = await listFiles(client, ref, head);
   const summary = emptySummary(fullName, 'synced');
@@ -398,8 +431,19 @@ export async function syncRepository(
   });
   summary.skillsFound = locations.length;
 
-  const presentPaths = locations.map((location) => location.directory);
-  for (const location of locations) {
+  const protectedNames = (deps.protectedRepositories ?? []).map((name) => name.toLowerCase());
+  const isProtected = protectedNames.includes(fullName.toLowerCase());
+  const cap = isProtected
+    ? limits.maxSkillsPerRepo
+    : skillCapForStars(data.stargazers_count, limits.maxSkillsPerRepo);
+  // Paths kept in the catalog; anything else that was active is marked removed below.
+  const presentPaths: string[] = [];
+  const locatedPaths = locations.map((location) => location.directory);
+  for (const [index, location] of locations.entries()) {
+    if (presentPaths.length >= cap) {
+      summary.overCap = locations.length - index;
+      break;
+    }
     const loaded = await loadSkillFiles(client, ref, head, location, limits);
     for (const problem of loaded.problems) {
       summary.errors += 1;
@@ -415,8 +459,30 @@ export async function syncRepository(
         message: 'SKILL.md could not be read as text; the skill was not updated.',
         now,
       });
+      presentPaths.push(location.directory);
       continue;
     }
+
+    // An identical copy that ranks ahead (protected, more stars, indexed first) wins.
+    if (
+      !isProtected &&
+      (await hasBetterCopy(
+        db,
+        {
+          contentHash: loaded.contentHash,
+          repositoryId: repo.id,
+          path: location.directory,
+          stars: data.stargazers_count,
+          isProtected,
+          presentPaths: locatedPaths,
+        },
+        deps.protectedRepositories ?? [],
+      ))
+    ) {
+      summary.duplicates = (summary.duplicates ?? 0) + 1;
+      continue;
+    }
+    presentPaths.push(location.directory);
 
     const parsed = parseSkillMd(loaded.skillMd, location.directoryName);
     const issues: unknown[] = [...parsed.issues];
@@ -469,7 +535,8 @@ export async function syncRepository(
         committedAt: data.pushed_at,
         files: loaded.files,
         categorySlug: guessCategory(parsed.name, parsed.description),
-        presentPaths: complete ? presentPaths : undefined,
+        // Every located path, not only those kept so far: used to recognise renames.
+        presentPaths: complete ? locatedPaths : undefined,
         compatibility: inferAgentCompatibility(location.directory, parsed, location.files),
       },
       now,

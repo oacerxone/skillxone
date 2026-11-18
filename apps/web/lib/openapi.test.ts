@@ -42,7 +42,10 @@ describe('OpenAPI document', () => {
 
   it('describes exactly the public routes that exist, with their methods', () => {
     const implemented = implementedRoutes();
-    const publicRoutes = [...implemented].filter(([path]) => !path.startsWith('/api/admin/'));
+    // Admin routes and the payment provider's webhook are not part of the public API.
+    const publicRoutes = [...implemented].filter(
+      ([path]) => !path.startsWith('/api/admin/') && !path.startsWith('/api/billing/'),
+    );
     const documented = Object.entries(openApiDocument.paths).map(
       ([path, item]) => [path, new Set(Object.keys(item))] as const,
     );

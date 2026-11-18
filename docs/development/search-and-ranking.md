@@ -6,10 +6,10 @@ How results are found and ordered, how to operate the index, and measured perfor
 
 Search runs inside the database. There is no search service and no AI model.
 
-| Database         | Backend                         | Behaviour                                                                           |
-| ---------------- | ------------------------------- | ----------------------------------------------------------------------------------- |
-| SQLite (default) | FTS5 virtual table `skills_fts` | Ranked by BM25, word stemming, prefix matching while typing                         |
-| PostgreSQL       | Substring match                 | Correct but unranked; a `tsvector` backend can replace it behind the same interface |
+| Database         | Backend                                | Behaviour                                                                           |
+| ---------------- | -------------------------------------- | ----------------------------------------------------------------------------------- |
+| SQLite (default) | Contentless FTS5 table `skills_search` | Ranked by BM25, word stemming, prefix matching while typing                         |
+| PostgreSQL       | Substring match                        | Correct but unranked; a `tsvector` backend can replace it behind the same interface |
 
 Indexed fields and their weights: name 10, description 4, owner 2, repository 2, categories 2, `SKILL.md` body 1.
 

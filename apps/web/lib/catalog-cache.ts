@@ -4,6 +4,7 @@ import {
   listAgentIds,
   listCategories,
   listCollections,
+  listTopLicenses,
 } from '@skillxone/database';
 import type { SkillPage, SkillQuery } from '@skillxone/database';
 import { cached } from './cache';
@@ -27,6 +28,10 @@ export async function cachedCollections() {
 
 export async function cachedAgentIds() {
   return cached('agent-ids', 10 * MINUTE, async () => listAgentIds((await getDatabase()).db));
+}
+
+export async function cachedLicenses() {
+  return cached('licenses', 30 * MINUTE, async () => listTopLicenses((await getDatabase()).db));
 }
 
 export async function cachedDevFixtures(): Promise<boolean> {

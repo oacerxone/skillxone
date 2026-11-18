@@ -249,3 +249,48 @@ describe('getRepositoryStars', () => {
     expect(await getRepositoryStars(handle.db, 'nobody', 'nothing')).toBeNull();
   });
 });
+
+describe('advanced filters', () => {
+  const all = async () =>
+    handle.db
+      .selectFrom('skills as s')
+      .innerJoin('repositories as r', 'r.id', 's.repository_id')
+      .innerJoin('skill_versions as v', 'v.id', 's.current_version_id')
+      .select(['s.id', 'r.stars', 's.license', 'v.has_scripts', 's.content_updated_at'])
+      .where('s.status', '=', 'active')
+      .where('r.status', 'in', ['active', 'archived'])
+      .execute();
+  const ids = async (query: Parameters<typeof listSkills>[1]) =>
+    (await listSkills(handle.db, { ...query, pageSize: 100 })).items.map((s) => s.id).sort();
+
+  it('filters by minimum stars, licence, scripts and update date', async () => {
+    const rows = await all();
+    const pick = (keep: (row: (typeof rows)[number]) => boolean) =>
+      rows
+        .filter(keep)
+        .map((row) => row.id)
+        .sort();
+
+    const stars = [...rows.map((r) => Number(r.stars))].sort((a, b) => a - b)[
+      Math.floor(rows.length / 2)
+    ]!;
+    expect(await ids({ minStars: stars })).toEqual(pick((r) => Number(r.stars) >= stars));
+
+    const license = rows.find((r) => r.license)?.license;
+    expect(license).toBeTruthy();
+    expect(await ids({ license: license! })).toEqual(pick((r) => r.license === license));
+
+    expect(await ids({ noScripts: true })).toEqual(pick((r) => Number(r.has_scripts) === 0));
+    expect(await ids({ noScripts: true })).not.toEqual(pick(() => true));
+
+    const since = [...rows.map((r) => r.content_updated_at)].sort()[Math.floor(rows.length / 2)]!;
+    expect(await ids({ updatedSince: since })).toEqual(pick((r) => r.content_updated_at >= since));
+  });
+
+  it('lists licences by how common they are', async () => {
+    const { listTopLicenses } = await import('./index');
+    const licenses = await listTopLicenses(handle.db, 5);
+    expect(licenses.length).toBeGreaterThan(0);
+    expect(new Set(licenses).size).toBe(licenses.length);
+  });
+});
