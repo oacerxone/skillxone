@@ -17,7 +17,12 @@ import { skillHref } from '@/components/skill-list';
 import { VerificationBadge } from '@/components/verification-badge';
 import { getDatabase } from '@/lib/db';
 import { REPOSITORY_URL, repositoryFullName } from '@/lib/navigation';
-import { OWN_SKILL_NAME, ownSkillInstall } from '@/lib/own-skill';
+import {
+  AUDIT_SKILL_NAME,
+  auditSkillInstall,
+  OWN_SKILL_NAME,
+  ownSkillInstall,
+} from '@/lib/own-skill';
 
 export const metadata: Metadata = {
   title: 'Get the skillxone skill for Claude Code and Codex',
@@ -174,6 +179,38 @@ export default async function GetSkillPage() {
             <Command label="All projects" command={ownSkillInstall.codexGlobal} />
             <p className="text-[12px] text-text-muted">Then start a new Codex session.</p>
           </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="audit-heading" className="mt-14">
+        <div className="panel relative overflow-hidden p-6 sm:p-8">
+          <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-[12px] text-text-muted">
+            <span className="inline-block size-1.5 rounded-full bg-accent" />
+            Companion skill
+          </p>
+          <h2 id="audit-heading" className="text-[22px] font-semibold leading-8">
+            Already installed something you are not sure about?
+          </h2>
+          <p className="mt-2 max-w-3xl text-[14px] leading-6 text-text-muted">
+            <code className="font-mono">{AUDIT_SKILL_NAME}</code> reviews the skills, plugins, hooks
+            and MCP servers your agent already trusts, using the same risk categories as our
+            scanner. It reads files without running them, reports each risk in plain words with the
+            file and line, never prints secret values, and quarantines an item only after you say
+            yes.
+          </p>
+          <div className="mt-5 grid gap-4 lg:grid-cols-2">
+            <Command label="Claude Code" command={auditSkillInstall.claudeCode} />
+            <Command label="OpenAI Codex" command={auditSkillInstall.codex} />
+          </div>
+          <p className="mt-4 text-[13px] text-text-muted">
+            Then ask your agent: “Audit my installed skills and MCP servers.”{' '}
+            <a
+              href={`${REPOSITORY_URL}/blob/main/skills/${AUDIT_SKILL_NAME}/SKILL.md`}
+              className="link"
+            >
+              Read the audit skill
+            </a>
+          </p>
         </div>
       </section>
 

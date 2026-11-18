@@ -1,15 +1,13 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { listCategories } from '@skillxone/database';
 import { CategoryTile, categoryArt } from '@/components/art';
 import { PageHeader } from '@/components/page-parts';
-import { getDatabase } from '@/lib/db';
+import { cachedCategories } from '@/lib/catalog-cache';
 
 export const metadata: Metadata = { title: 'Categories' };
 
 export default async function CategoriesPage() {
-  const { db } = await getDatabase();
-  const categories = await listCategories(db);
+  const categories = await cachedCategories();
 
   return (
     <>

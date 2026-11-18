@@ -2,11 +2,12 @@ import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import { GeistMono } from 'geist/font/mono';
 import { GeistSans } from 'geist/font/sans';
-import { getRepositoryStars, hasDevFixtures } from '@skillxone/database';
+import { Suspense } from 'react';
+import { NavigationProgress } from '@/components/navigation-progress';
 import { SearchShortcut } from '@/components/search-shortcut';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
-import { getDatabase } from '@/lib/db';
+import { cachedDevFixtures, cachedRepositoryStars } from '@/lib/catalog-cache';
 import { repositoryFullName } from '@/lib/navigation';
 import { THEME_STORAGE_KEY } from '@/lib/theme';
 import './globals.css';
@@ -28,8 +29,7 @@ const themeScript = `try{if(localStorage.getItem(${JSON.stringify(THEME_STORAGE_
 
 async function devFixturesPresent(): Promise<boolean> {
   try {
-    const { db } = await getDatabase();
-    return await hasDevFixtures(db);
+    return await cachedDevFixtures();
   } catch {
     // An unreachable or unmigrated database is reported by /api/health, not by the banner.
     return false;
@@ -41,8 +41,7 @@ async function ownRepositoryStars(): Promise<number | null> {
   const repo = repositoryFullName();
   if (!repo) return null;
   try {
-    const { db } = await getDatabase();
-    return await getRepositoryStars(db, repo[0], repo[1]);
+    return await cachedRepositoryStars(repo[0], repo[1]);
   } catch {
     return null;
   }
@@ -86,6 +85,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </main>
         <SiteFooter stars={stars} />
         <SearchShortcut />
+        <Suspense fallback={null}>
+          <NavigationProgress />
+        </Suspense>
       </body>
     </html>
   );

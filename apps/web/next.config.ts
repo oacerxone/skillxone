@@ -15,7 +15,12 @@ const config: NextConfig = {
   outputFileTracingRoot: path.join(import.meta.dirname, '../..'),
   poweredByHeader: false,
   // unauthorized() and forbidden() give admin pages real 401 and 403 statuses.
-  experimental: { authInterrupts: true },
+  experimental: {
+    authInterrupts: true,
+    // Keep visited pages in the client router for 30 s, so going back and forth between
+    // pages is instant instead of a fresh server render each time.
+    staleTimes: { dynamic: 30, static: 300 },
+  },
   async headers() {
     return [
       {

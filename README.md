@@ -71,6 +71,16 @@ npx skills add oacerxone/skillxone --skill skillxone -a codex
 
 Add `-g` to install for all projects. The skill's source is [skills/skillxone/SKILL.md](skills/skillxone/SKILL.md), and a test runs it through skillxone's own scanner and policy on every change. Setup guide: [skillxone.online/get-skill](https://skillxone.online/get-skill).
 
+### Audit what is already installed
+
+Installed a skill, plugin or MCP server from the internet and not sure about it? The **skillxone-audit** skill reviews everything your agent already trusts (skills, plugins, hooks and MCP servers), using the same risk categories as the skillxone scanner. It reads files without running them, flags hidden instructions, remote-code execution, credential access, data exfiltration and obfuscation with the file and line, never prints secret values, and quarantines an item only after you confirm.
+
+```bash
+npx skills add oacerxone/skillxone --skill skillxone-audit -a claude-code -g
+```
+
+Then ask your agent: _"Audit my installed skills and MCP servers."_ Source: [skills/skillxone-audit/SKILL.md](skills/skillxone-audit/SKILL.md).
+
 ## Quick start
 
 **Requirements:** Node.js 22.12+ and pnpm 10 (`corepack enable` provides pnpm).

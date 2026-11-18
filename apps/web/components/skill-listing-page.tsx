@@ -1,6 +1,5 @@
-import { listSkills } from '@skillxone/database';
 import type { SkillQuery } from '@skillxone/database';
-import { getDatabase } from '@/lib/db';
+import { cachedSearch } from '@/lib/catalog-cache';
 import type { NavIcon as NavIconName } from '@/lib/navigation';
 import { PageHeader, Pagination } from './page-parts';
 import { EmptyState, SkillList } from './skill-list';
@@ -31,8 +30,7 @@ export async function SkillListingPage({
 }) {
   const parsed = Number.parseInt((Array.isArray(rawPage) ? rawPage[0] : rawPage) ?? '1', 10);
   const page = Number.isInteger(parsed) && parsed >= 1 && parsed <= 100_000 ? parsed : 1;
-  const { db } = await getDatabase();
-  const result = await listSkills(db, { ...query, page, pageSize: PAGE_SIZE });
+  const result = await cachedSearch({ ...query, page, pageSize: PAGE_SIZE });
 
   return (
     <>

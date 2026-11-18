@@ -1,7 +1,7 @@
-import { listSkills } from '@skillxone/database';
+import { listSkillsPerRepository } from '@skillxone/database';
 import type { SkillListItem, SkillQuery } from '@skillxone/database';
 
-type Db = Parameters<typeof listSkills>[0];
+type Db = Parameters<typeof listSkillsPerRepository>[0];
 
 /** Keeps at most `perSource` skills from each repository, preserving order. */
 export function onePerSource(
@@ -24,22 +24,13 @@ export function onePerSource(
 
 /**
  * A listing for showcase sections: the query's order, but at most `perSource` skills per
- * repository, so one large repository cannot fill the section. Reads up to `maxPages` pages.
+ * repository, so one large repository cannot fill the section. Totals count every skill.
  */
 export async function listDiverseSkills(
   db: Db,
   query: SkillQuery,
   limit: number,
-  { perSource = 1, maxPages = 5 } = {},
+  { perSource = 1 } = {},
 ): Promise<{ items: SkillListItem[]; total: number }> {
-  const collected: SkillListItem[] = [];
-  let total = 0;
-  for (let page = 1; page <= maxPages; page += 1) {
-    const result = await listSkills(db, { ...query, page, pageSize: 100 });
-    total = result.total;
-    collected.push(...result.items);
-    if (onePerSource(collected, limit, perSource).length >= limit || page >= result.pageCount)
-      break;
-  }
-  return { items: onePerSource(collected, limit, perSource), total };
+  return listSkillsPerRepository(db, query, limit, perSource);
 }

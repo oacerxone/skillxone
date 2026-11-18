@@ -1017,3 +1017,44 @@
     }
   }
 }
+
+/* Route loading state (app/loading.tsx). */
+@layer components {
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      var(--bg-muted) 0%,
+      color-mix(in oklab, var(--bg-muted) 55%, var(--bg)) 50%,
+      var(--bg-muted) 100%
+    );
+    background-size: 200% 100%;
+    animation: sx-skeleton 1.2s ease-in-out infinite;
+  }
+  .route-progress {
+    position: fixed;
+    inset: 0 0 auto 0;
+    z-index: 50;
+    height: 2px;
+    background: var(--accent);
+    transform-origin: left;
+    animation: sx-route-progress 8s cubic-bezier(0.1, 0.7, 0.1, 1) forwards;
+  }
+}
+
+@keyframes sx-skeleton {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@keyframes sx-route-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(0.92);
+  }
+}

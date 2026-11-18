@@ -47,6 +47,9 @@ async function openSqlite(url: string, options: OpenOptions): Promise<DatabaseHa
   sqlite.pragma('synchronous = NORMAL');
   sqlite.pragma(`busy_timeout = ${Math.trunc(options.busyTimeoutMs ?? 5000)}`);
   sqlite.pragma('foreign_keys = ON');
+  // A 64 MB page cache and in-memory temp tables keep sorted catalog listings off the disk.
+  sqlite.pragma('cache_size = -65536');
+  sqlite.pragma('temp_store = MEMORY');
 
   const db = new Kysely<Database>({ dialect: new SqliteDialect({ database: sqlite }) });
   return { db, dialect: 'sqlite', close: () => db.destroy() };

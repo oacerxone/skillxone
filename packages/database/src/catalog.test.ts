@@ -11,6 +11,7 @@ import {
   listCollections,
   listRelatedSkills,
   listSkills,
+  listSkillsPerRepository,
   metricsHistoryDays,
   migrateToLatest,
   openDatabase,
@@ -42,6 +43,42 @@ describe('search helpers', () => {
 
   it('escapes LIKE wildcards', () => {
     expect(likePattern('50%_off\\')).toBe('%50\\%\\_off\\\\%');
+  });
+});
+
+describe('listSkillsPerRepository', () => {
+  for (const sort of ['popular', 'updated', 'newest', 'recommended', 'trending'] as const) {
+    it(`matches the ${sort} order with at most one skill per repository`, async () => {
+      const all = await listSkills(handle.db, { sort, pageSize: 100 });
+      const seen = new Set<string>();
+      const expected = all.items.filter((item) => {
+        const key = `${item.owner}/${item.repo}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      const diverse = await listSkillsPerRepository(handle.db, { sort }, 100);
+      expect(diverse.items.map((item) => item.id)).toEqual(expected.map((item) => item.id));
+      expect(diverse.total).toBe(all.total);
+    });
+  }
+
+  it('applies filters, the limit and a larger per-repository allowance', async () => {
+    const verified = await listSkillsPerRepository(
+      handle.db,
+      { verification: 'VERIFIED', sort: 'popular' },
+      2,
+      2,
+    );
+    expect(verified.items.length).toBeLessThanOrEqual(2);
+    expect(verified.items.every((item) => item.verificationState === 'VERIFIED')).toBe(true);
+    const counts = new Map<string, number>();
+    const many = await listSkillsPerRepository(handle.db, { sort: 'popular' }, 100, 2);
+    for (const item of many.items) {
+      const key = `${item.owner}/${item.repo}`;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    expect(Math.max(...counts.values())).toBeLessThanOrEqual(2);
   });
 });
 

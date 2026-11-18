@@ -1,11 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { listAgentIds, listCategories, searchTerms } from '@skillxone/database';
+import { searchTerms } from '@skillxone/database';
 import { ExploreFilters } from '@/components/explore-filters';
 import { PageHeader, Pagination } from '@/components/page-parts';
 import { EmptyState, SkillCards, SkillList } from '@/components/skill-list';
-import { getDatabase } from '@/lib/db';
-import { searchSkills } from '@/lib/search';
+import { cachedAgentIds, cachedCategories, cachedSearch } from '@/lib/catalog-cache';
 import { buildExploreQuery, parseExploreParams, toSkillQuery } from '@/lib/search-params';
 
 export const metadata: Metadata = { title: 'Explore skills' };
@@ -18,11 +17,10 @@ export default async function ExplorePage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const filters = parseExploreParams(await searchParams);
-  const { db } = await getDatabase();
   const [result, agents, categories] = await Promise.all([
-    searchSkills(toSkillQuery(filters, PAGE_SIZE)),
-    listAgentIds(db),
-    listCategories(db),
+    cachedSearch(toSkillQuery(filters, PAGE_SIZE)),
+    cachedAgentIds(),
+    cachedCategories(),
   ]);
   const terms = searchTerms(filters.q);
   const now = new Date();

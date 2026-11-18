@@ -1,15 +1,13 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { listCollections } from '@skillxone/database';
 import { PageHeader } from '@/components/page-parts';
 import { EmptyState } from '@/components/skill-list';
-import { getDatabase } from '@/lib/db';
+import { cachedCollections } from '@/lib/catalog-cache';
 
 export const metadata: Metadata = { title: 'Collections' };
 
 export default async function CollectionsPage() {
-  const { db } = await getDatabase();
-  const collections = await listCollections(db);
+  const collections = await cachedCollections();
 
   return (
     <>

@@ -1,9 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getCategory } from '@skillxone/database';
 import { SkillListingPage } from '@/components/skill-listing-page';
-import { getDatabase } from '@/lib/db';
+import { cachedCategories } from '@/lib/catalog-cache';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -13,8 +12,7 @@ interface Props {
 async function load(slug: string) {
   // Category slugs are a fixed shape; anything else cannot exist.
   if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(slug)) return undefined;
-  const { db } = await getDatabase();
-  return getCategory(db, slug);
+  return (await cachedCategories()).find((c) => c.slug === slug);
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

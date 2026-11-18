@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type { SessionUser, UserRole } from '@skillxone/database';
 import { apiError } from './api';
 import { requestIpHash, requireAdminMutation } from './auth';
+import { clearCache } from './cache';
 
 export const isId = (value: unknown): value is string =>
   typeof value === 'string' && /^[A-Za-z0-9_-]{1,120}$/.test(value);
@@ -36,6 +37,9 @@ export function adminAction<Context>(
         ipHash: await requestIpHash(request),
         context,
       });
+      // An admin change (hide, flag, re-verify, publish) must show on public pages at once,
+      // not after the catalog cache expires.
+      clearCache();
       if (result instanceof Response) return result;
       const back = formText(form, 'back', 200);
       const target = new URL(

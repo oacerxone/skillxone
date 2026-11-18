@@ -286,6 +286,91 @@ export async function listSkills(db: Db, query: SkillQuery = {}): Promise<SkillP
   return { items: await toItems(db, rows), total, page, pageSize, pageCount };
 }
 
+/**
+ * The sort order of a listing as SQL expressions, best first. Shared by `listSkills`'s
+ * window variant below so both order skills the same way.
+ */
+function sortTerms(sort: SkillSort): Array<[ReturnType<typeof sql>, 'asc' | 'desc']> {
+  const ranked = (column: string) => sql`coalesce(${sql.ref(`rs.${column}`)}, -1)`;
+  switch (sort) {
+    case 'popular':
+      return [[sql.ref('r.stars'), 'desc']];
+    case 'trending':
+      return [
+        [ranked('trending_score'), 'desc'],
+        [ranked('quality_score'), 'desc'],
+      ];
+    case 'rising':
+      return [
+        [ranked('rising_score'), 'desc'],
+        [ranked('quality_score'), 'desc'],
+      ];
+    case 'maintained':
+      return [
+        [ranked('maintenance_score'), 'desc'],
+        [ranked('quality_score'), 'desc'],
+      ];
+    case 'updated':
+      return [[sql.ref('s.content_updated_at'), 'desc']];
+    case 'newest':
+      return [[sql.ref('s.first_indexed_at'), 'desc']];
+    case 'name':
+      return [[sql.ref('s.name'), 'asc']];
+    default:
+      return [
+        [ranked('quality_score'), 'desc'],
+        [sql.ref('r.stars'), 'desc'],
+      ];
+  }
+}
+
+/**
+ * The best `limit` skills for a query, but at most `perRepository` from each repository, so
+ * one large repository cannot fill a showcase section. One query: a window function ranks
+ * skills inside each repository, then the survivors are ordered and cut. Portable to SQLite
+ * (3.25+) and PostgreSQL. `total` counts every matching skill, not only the diverse ones.
+ */
+export async function listSkillsPerRepository(
+  db: Db,
+  query: SkillQuery,
+  limit: number,
+  perRepository = 1,
+): Promise<{ items: SkillListItem[]; total: number }> {
+  const cap = Math.min(MAX_PAGE_SIZE, Math.max(1, Math.trunc(limit)));
+  const per = Math.max(1, Math.trunc(perRepository));
+  const terms = sortTerms(query.sort ?? 'recommended');
+  const orderSql = sql.join(
+    [...terms.map(([expr, dir]) => sql`${expr} ${sql.raw(dir)}`), sql`s.id asc`],
+    sql`, `,
+  );
+
+  const ranked = baseQuery(db, query).select([
+    's.id as id',
+    sql<number>`row_number() over (partition by s.repository_id order by ${orderSql})`.as('rn'),
+    ...terms.map(([expr], i) => sql`${expr}`.as(`k${i}`)),
+  ]);
+
+  const outerOrder = sql.join(
+    [...terms.map((term, i) => sql`${sql.ref(`t.k${i}`)} ${sql.raw(term[1])}`), sql`t.id asc`],
+    sql`, `,
+  );
+  const [countRow, rows] = await Promise.all([
+    baseQuery(db, query)
+      .select((eb) => eb.fn.countAll<number>().as('n'))
+      .executeTakeFirstOrThrow(),
+    sql<{
+      id: string;
+    }>`select t.id as id from (${ranked}) t where t.rn <= ${per} order by ${outerOrder} limit ${cap}`.execute(
+      db,
+    ),
+  ]);
+  const items = await listSkillsByIds(
+    db,
+    rows.rows.map((row) => row.id),
+  );
+  return { items, total: Number(countRow.n) };
+}
+
 /** Skills by id, returned in the order of `ids`. Unknown or inactive ids are skipped. */
 export async function listSkillsByIds(db: Db, ids: readonly string[]): Promise<SkillListItem[]> {
   if (ids.length === 0) return [];
@@ -309,27 +394,28 @@ export interface CategorySummary {
 }
 
 export async function listCategories(db: Db): Promise<CategorySummary[]> {
-  const rows = await db
-    .selectFrom('categories as c')
-    .select((eb) => [
-      'c.slug',
-      'c.name',
-      'c.description',
-      eb
-        .selectFrom('skill_categories as sc')
-        .innerJoin('skills as s', 's.id', 'sc.skill_id')
-        .select((sub) => sub.fn.countAll<number>().as('n'))
-        .whereRef('sc.category_id', '=', 'c.id')
-        .where('s.status', '=', 'active')
-        .as('skill_count'),
-    ])
-    .orderBy('c.sort_order')
-    .execute();
+  // One grouped count instead of a correlated subquery per category: the subquery form
+  // walked every active skill once per category, which is slow on a large catalog.
+  const [rows, counts] = await Promise.all([
+    db
+      .selectFrom('categories as c')
+      .select(['c.id', 'c.slug', 'c.name', 'c.description'])
+      .orderBy('c.sort_order')
+      .execute(),
+    db
+      .selectFrom('skill_categories as sc')
+      .innerJoin('skills as s', 's.id', 'sc.skill_id')
+      .where('s.status', '=', 'active')
+      .select((eb) => ['sc.category_id as id', eb.fn.countAll<number>().as('n')])
+      .groupBy('sc.category_id')
+      .execute(),
+  ]);
+  const byId = new Map(counts.map((row) => [row.id, Number(row.n)]));
   return rows.map((row) => ({
     slug: row.slug,
     name: row.name,
     description: row.description,
-    skillCount: Number(row.skill_count ?? 0),
+    skillCount: byId.get(row.id) ?? 0,
   }));
 }
 
@@ -345,28 +431,27 @@ export interface CollectionSummary {
 }
 
 export async function listCollections(db: Db): Promise<CollectionSummary[]> {
-  const rows = await db
-    .selectFrom('collections as c')
-    .select((eb) => [
-      'c.slug',
-      'c.title',
-      'c.description',
-      eb
-        .selectFrom('collection_skills as cs')
-        .innerJoin('skills as s', 's.id', 'cs.skill_id')
-        .select((sub) => sub.fn.countAll<number>().as('n'))
-        .whereRef('cs.collection_id', '=', 'c.id')
-        .where('s.status', '=', 'active')
-        .as('skill_count'),
-    ])
-    .where('c.is_published', '=', 1)
-    .orderBy('c.title')
-    .execute();
+  const [rows, counts] = await Promise.all([
+    db
+      .selectFrom('collections as c')
+      .select(['c.id', 'c.slug', 'c.title', 'c.description'])
+      .where('c.is_published', '=', 1)
+      .orderBy('c.title')
+      .execute(),
+    db
+      .selectFrom('collection_skills as cs')
+      .innerJoin('skills as s', 's.id', 'cs.skill_id')
+      .where('s.status', '=', 'active')
+      .select((eb) => ['cs.collection_id as id', eb.fn.countAll<number>().as('n')])
+      .groupBy('cs.collection_id')
+      .execute(),
+  ]);
+  const byId = new Map(counts.map((row) => [row.id, Number(row.n)]));
   return rows.map((row) => ({
     slug: row.slug,
     title: row.title,
     description: row.description,
-    skillCount: Number(row.skill_count ?? 0),
+    skillCount: byId.get(row.id) ?? 0,
   }));
 }
 

@@ -1,10 +1,12 @@
 import Link from 'next/link';
-import { listCategories, listCollections, metricsHistoryDays } from '@skillxone/database';
+import { metricsHistoryDays } from '@skillxone/database';
 import { Avatar, CategoryTile, categoryArt } from '@/components/art';
 import { HeroIllustration } from '@/components/hero-illustration';
 import { ArrowRightIcon, StarIcon } from '@/components/icons';
 import { Section } from '@/components/page-parts';
 import { EmptyState, SkillList } from '@/components/skill-list';
+import { cached } from '@/lib/cache';
+import { cachedCategories, cachedCollections } from '@/lib/catalog-cache';
 import { getDatabase } from '@/lib/db';
 import { listDiverseSkills } from '@/lib/diverse';
 import { formatCount } from '@/lib/format';
@@ -12,22 +14,35 @@ import { AGENT_IDS, AGENT_INFO } from '@/lib/install';
 import { REPOSITORY_URL } from '@/lib/navigation';
 import { MIN_TREND_HISTORY_DAYS } from '@/lib/trending';
 
+/**
+ * Everything the home page shows. It is the most expensive page to build (several sorted
+ * listings over the whole catalog), so it is cached for ten minutes and refreshed in the
+ * background; the catalog itself only changes when the worker finishes a job.
+ */
+async function loadHome() {
+  return cached('home', 10 * 60_000, async () => {
+    const { db } = await getDatabase();
+    // Trending is computed from star history this instance has recorded itself. Until a
+    // week exists, the section is ordered by recent activity and labelled as such.
+    const trendingReady = (await metricsHistoryDays(db)) >= MIN_TREND_HISTORY_DAYS;
+    // Showcase sections take one skill per repository, so a single large repository cannot
+    // fill a section. Totals still count every skill.
+    const [active, verified, updated, categories, collections, popular] = await Promise.all([
+      listDiverseSkills(db, { sort: trendingReady ? 'trending' : 'updated' }, 8),
+      listDiverseSkills(db, { verification: 'VERIFIED', sort: 'recommended' }, 6),
+      listDiverseSkills(db, { sort: 'newest' }, 6),
+      cachedCategories(),
+      cachedCollections(),
+      listDiverseSkills(db, { sort: 'popular' }, 14),
+    ]);
+    return { trendingReady, active, verified, updated, categories, collections, popular };
+  });
+}
+
 export default async function HomePage() {
-  const { db } = await getDatabase();
   const now = new Date();
-  // Trending is computed from star history this instance has recorded itself. Until a week
-  // exists, the section is ordered by recent activity and labelled as such.
-  const trendingReady = (await metricsHistoryDays(db)) >= MIN_TREND_HISTORY_DAYS;
-  // Showcase sections take one skill per repository, so a single large repository cannot
-  // fill a section. Totals still count every skill.
-  const [active, verified, updated, categories, collections, popular] = await Promise.all([
-    listDiverseSkills(db, { sort: trendingReady ? 'trending' : 'updated' }, 8),
-    listDiverseSkills(db, { verification: 'VERIFIED', sort: 'recommended' }, 6),
-    listDiverseSkills(db, { sort: 'newest' }, 6),
-    listCategories(db),
-    listCollections(db),
-    listDiverseSkills(db, { sort: 'popular' }, 14),
-  ]);
+  const { trendingReady, active, verified, updated, categories, collections, popular } =
+    await loadHome();
   // Distinct source repositories of the most popular skills, for the "Indexed from" strip.
   const sources = popular.items;
   const withSkills = categories.filter((c) => c.skillCount > 0);
